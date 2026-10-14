@@ -1,0 +1,42 @@
+name: atlas-flight-booking-service
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-flightsai}
+      POSTGRES_USER: ${POSTGRES_USER:-flightsai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-flightsai}
+      DB_USER: ${POSTGRES_USER:-flightsai}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8080:8080"
+
+  # Fase 5 (Angular): descomentar quando o frontend existir.
+  # frontend:
+  #   build: ./frontend          # build do Angular + nginx, com proxy de /api para o backend
+  #   depends_on:
+  #     - backend
+  #   ports:
+  #     - "4200:80"
+
+volumes:
+  pgdata:

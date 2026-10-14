@@ -1,0 +1,18 @@
+# Segredos
+.env
+
+# Java / Maven
+target/
+*.class
+*.log
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Angular (fase 5)
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/

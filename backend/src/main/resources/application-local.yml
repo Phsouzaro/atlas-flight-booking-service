@@ -1,0 +1,10 @@
+# Perfil de desenvolvimento local (mvn spring-boot:run -Dspring-boot.run.profiles=local).
+# NUNCA use este segredo fora da sua máquina.
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:local-dev-only-secret-change-me-0123456789}
+
+logging:
+  level:
+    com.flightsai: DEBUG
