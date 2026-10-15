@@ -34,13 +34,13 @@ services:
     ports:
       - "8080:8080"
 
-  # Fase 5 (Angular): descomentar quando o frontend existir.
-  # frontend:
-  #   build: ./frontend          # build do Angular + nginx, com proxy de /api para o backend
-  #   depends_on:
-  #     - backend
-  #   ports:
-  #     - "4200:80"
+  # Angular servido por nginx, com proxy de /api para o backend: abra http://localhost:4200
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "4200:8080"
 
 volumes:
   pgdata:

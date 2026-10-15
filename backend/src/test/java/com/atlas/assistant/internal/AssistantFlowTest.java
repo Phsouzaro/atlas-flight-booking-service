@@ -153,10 +153,20 @@ class AssistantFlowTest {
                 .andExpect(jsonPath("$.content").value("Achei o voo AT100 por BRL 399.90."))
                 .andExpect(jsonPath("$.toolCalls[0]").value("searchFlights"))
                 .andExpect(jsonPath("$.promptVersion").value("v1"))
-                .andExpect(jsonPath("$.usage.promptTokens").value(200));
+                .andExpect(jsonPath("$.usage.promptTokens").value(200))
+                // o mesmo voo que o modelo viu vai para o card da UI
+                .andExpect(jsonPath("$.attachments.flights[0].flightId").value(flight.toString()))
+                .andExpect(jsonPath("$.attachments.flights[0].fares[0].pricePerPassenger").value("BRL 399.90"))
+                .andExpect(jsonPath("$.attachments.bookings").isEmpty());
 
         String toolResult = lastToolMessage(openAi.chatRequests().get(1));
         assertThat(toolResult).contains("AT100").contains(flight.toString()).contains("BRL 399.90");
+
+        // histórico e replay trazem os mesmos cards
+        mvc.perform(get("/assistant/conversations/{id}/messages", conversation).with(user(me)))
+                .andExpect(jsonPath("$[1].attachments.flights[0].flightNumber").value("AT100"));
+        say("voos GRU-GIG dia 25?", "k-1")
+                .andExpect(jsonPath("$.attachments.flights[0].flightNumber").value("AT100"));
     }
 
     @Test
@@ -233,7 +243,9 @@ class AssistantFlowTest {
                 List.of(Map.of("fullName", "Ana Souza", "documentNumber", "[DOC_1]", "birthDate", "1990-05-20")))));
         openAi.enqueueText("Assentos segurados por 15 minutos.");
         say("o AT100, tarifa light", "k-2").andExpect(status().isOk())
-                .andExpect(jsonPath("$.toolCalls[0]").value("createBookingHold"));
+                .andExpect(jsonPath("$.toolCalls[0]").value("createBookingHold"))
+                .andExpect(jsonPath("$.attachments.bookings[0].status").value("HELD"))
+                .andExpect(jsonPath("$.attachments.bookings[0].passengerNames[0]").value("Ana S."));
 
         assertThat(jdbc.queryForObject("SELECT document_number FROM passengers", String.class)).isEqualTo(CPF);
         String toolResult = lastToolMessage(openAi.chatRequests().get(2));

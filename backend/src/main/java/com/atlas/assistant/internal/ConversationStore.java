@@ -33,7 +33,7 @@ class ConversationStore {
     }
 
     record StoredReply(UUID id, String content, String promptVersion, List<String> toolCalls,
-                       List<UUID> pendingActionIds, int promptTokens, int completionTokens) {
+                       List<UUID> pendingActionIds, Attachments attachments, int promptTokens, int completionTokens) {
     }
 
     @Transactional
@@ -63,12 +63,12 @@ class ConversationStore {
 
     Optional<StoredReply> findReply(UUID userMessageId) {
         return jdbc.query("SELECT id, content, prompt_version, tool_calls::text, pending_action_ids::text, "
-                        + "coalesce(prompt_tokens, 0), coalesce(completion_tokens, 0) FROM assistant_messages "
-                        + "WHERE reply_to_id = ?",
+                        + "attachments::text, coalesce(prompt_tokens, 0), coalesce(completion_tokens, 0) "
+                        + "FROM assistant_messages WHERE reply_to_id = ?",
                 (rs, i) -> new StoredReply(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3),
                         read(rs.getString(4), new TypeReference<List<String>>() {
                         }), read(rs.getString(5), new TypeReference<List<UUID>>() {
-                        }), rs.getInt(6), rs.getInt(7)),
+                        }), attachments(rs.getString(6)), rs.getInt(7), rs.getInt(8)),
                 userMessageId).stream().findFirst();
     }
 
@@ -88,13 +88,14 @@ class ConversationStore {
 
     @Transactional
     UUID insertReply(UUID conversationId, UUID replyToId, String content, String promptVersion, List<String> toolCalls,
-                     List<UUID> pendingActionIds, String toolContext, TokenUsage usage, Instant now) {
+                     List<UUID> pendingActionIds, Attachments attachments, String toolContext, TokenUsage usage,
+                     Instant now) {
         UUID id = UUID.randomUUID();
         jdbc.update("INSERT INTO assistant_messages (id, conversation_id, role, content, created_at, reply_to_id, "
-                        + "prompt_version, tool_calls, pending_action_ids, tool_context, prompt_tokens, completion_tokens) "
-                        + "VALUES (?, ?, 'ASSISTANT', ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, ?)",
+                        + "prompt_version, tool_calls, pending_action_ids, attachments, tool_context, prompt_tokens, "
+                        + "completion_tokens) VALUES (?, ?, 'ASSISTANT', ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?)",
                 id, conversationId, content, utc(now), replyToId, promptVersion, write(toolCalls), write(pendingActionIds),
-                toolContext, usage.promptTokens(), usage.completionTokens());
+                write(attachments), toolContext, usage.promptTokens(), usage.completionTokens());
         jdbc.update("UPDATE assistant_conversations SET updated_at = ? WHERE id = ?", utc(now), conversationId);
         return id;
     }
@@ -113,13 +114,24 @@ class ConversationStore {
     }
 
     private static final String COLUMNS =
-            "id, role, content, created_at, tool_calls::text, pending_action_ids::text, tool_context";
+            "id, role, content, created_at, tool_calls::text, pending_action_ids::text, attachments::text, tool_context";
 
     private MessageView message(ResultSet rs, int row) throws SQLException {
         return new MessageView(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), instant(rs, 4),
                 read(rs.getString(5), new TypeReference<List<String>>() {
                 }), read(rs.getString(6), new TypeReference<List<UUID>>() {
-                }), rs.getString(7));
+                }), attachments(rs.getString(7)), rs.getString(8));
+    }
+
+    private Attachments attachments(String value) {
+        if (value == null) {
+            return Attachments.EMPTY;
+        }
+        try {
+            return json.readValue(value, Attachments.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Corrupt assistant message attachments", e);
+        }
     }
 
     private <T> List<T> read(String value, TypeReference<List<T>> type) {

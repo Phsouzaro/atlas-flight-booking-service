@@ -1,0 +1,88 @@
+<div class="layout">
+  <aside class="history" [class.open]="showHistory()" aria-label="Conversas">
+    <button type="button" class="primary new" (click)="newConversation()">Nova conversa</button>
+    <ul>
+      @for (c of conversations(); track c.id) {
+        <li>
+          <button type="button" class="conversation" [class.active]="c.id === activeId()" (click)="open(c.id)">
+            Conversa de {{ c.createdAt | instant }}
+          </button>
+        </li>
+      } @empty {
+        <li class="muted empty">Nenhuma conversa ainda.</li>
+      }
+    </ul>
+  </aside>
+
+  <section class="chat">
+    <button type="button" class="link toggle-history" (click)="showHistory.set(!showHistory())">
+      {{ showHistory() ? 'Fechar conversas' : 'Conversas' }}
+    </button>
+
+    <div #thread class="thread" aria-live="polite">
+      @if (loadError()) {
+        <p class="error" role="alert">{{ loadError() }}</p>
+      }
+      @if (items().length === 0) {
+        <div class="welcome">
+          <h1>Como posso ajudar?</h1>
+          <p class="muted">Busco voos, mostro suas reservas e preparo cancelamentos e remarcações para você confirmar.
+            Eu nunca pago, cancelo ou remarco sozinho.</p>
+        </div>
+      }
+
+      @for (item of items(); track item.id) {
+        <div class="message" [class.user]="item.role === 'USER'">
+          <div class="bubble">{{ item.content }}</div>
+
+          @if (item.failed) {
+            <p class="error failed" role="alert">
+              {{ item.failed.error }}
+              <button type="button" class="link" (click)="retry(item)" [disabled]="sending()">Tentar de novo</button>
+            </p>
+          }
+
+          @if (item.attachments.flights.length) {
+            <div class="cards">
+              @for (flight of item.attachments.flights; track flight.flightId) {
+                <app-flight-card [flight]="flight" (choose)="chooseFare($event)" />
+              }
+            </div>
+          }
+          @if (item.attachments.bookings.length) {
+            <div class="cards">
+              @for (booking of item.attachments.bookings; track booking.bookingId) {
+                <app-booking-card [booking]="booking" />
+              }
+            </div>
+          }
+          @for (action of item.pendingActions; track action.id) {
+            <app-pending-action-card [action]="action" (changed)="actionChanged($event)" />
+          }
+        </div>
+      }
+
+      @if (sending()) {
+        <div class="message"><div class="bubble typing" aria-label="O assistente está respondendo">
+          <span></span><span></span><span></span>
+        </div></div>
+      }
+    </div>
+
+    <div class="composer">
+      <div class="shortcuts" role="group" aria-label="Atalhos">
+        @for (s of shortcuts; track s.label) {
+          <button type="button" class="chip" (click)="useShortcut(s.text)" [disabled]="sending()">{{ s.label }}</button>
+        }
+      </div>
+      <form (submit)="$event.preventDefault(); send(draft())">
+        <label class="visually-hidden" for="message">Mensagem</label>
+        <textarea #input id="message" name="message" rows="1" maxlength="2000"
+                  placeholder="Escreva sua mensagem… (Enter envia, Shift+Enter quebra linha)"
+                  [value]="draft()" (input)="draft.set($any($event.target).value)"
+                  (keydown)="onKeydown($event)"></textarea>
+        <button type="submit" class="primary" [disabled]="sending() || !draft().trim()">Enviar</button>
+      </form>
+    </div>
+  </section>
+</div>

@@ -1,5 +1,6 @@
 package com.atlas.shared;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springdoc.core.customizers.OpenApiCustomizer;
@@ -39,6 +40,25 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")));
+    }
+
+    /**
+     * Marca toda propriedade dos schemas como obrigatória. O Jackson sempre escreve todos os campos (nulos
+     * inclusive), então "opcional" no contrato seria mentira e o cliente gerado do front teria que tratar
+     * tudo como talvez ausente. Campo que pode vir nulo leva {@code @Schema(nullable = true)} no record.
+     */
+    @Bean
+    OpenApiCustomizer requiredPropertiesCustomizer() {
+        return openApi -> {
+            if (openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) {
+                return;
+            }
+            openApi.getComponents().getSchemas().values().forEach(schema -> {
+                if (schema.getProperties() != null && !schema.getProperties().isEmpty()) {
+                    schema.setRequired(new ArrayList<>(schema.getProperties().keySet()));
+                }
+            });
+        };
     }
 
     /** Exige o esquema Bearer em toda operação, exceto nas rotas públicas. */

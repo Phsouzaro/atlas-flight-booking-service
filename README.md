@@ -45,7 +45,7 @@ atlas-flight-booking-service/
 │       │   ├── application-local.yml
 │       │   └── db/migration/    # V1__extensions.sql, V2__users.sql
 │       └── test/                # ModularityTests, JwtPropertiesTest, AuthFlowTest
-├── frontend/                    # Angular (fase 5), por enquanto só um README
+├── frontend/                    # Angular 22: chat, reservas e confirmação de ações (ver frontend/README.md)
 ├── docs/
 │   ├── phase-0-guide.md         # como tudo funciona (leia primeiro)
 │   └── adr/                     # decisões de arquitetura
