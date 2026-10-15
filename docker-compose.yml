@@ -27,6 +27,8 @@ services:
       DB_USER: ${POSTGRES_USER:-flightsai}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      # perfil local liga o seeder do catálogo (voos simulados); troque no .env se não quiser
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
     ports:
       - "8080:8080"
 
