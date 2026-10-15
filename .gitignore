@@ -1,5 +1,7 @@
 # Segredos
 .env
+.env.example
+CLAUDE.md
 
 # Java / Maven
 target/
