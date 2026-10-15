@@ -4,12 +4,14 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import com.atlas.booking.BookingCancelled;
+import com.atlas.booking.BookingExpired;
 import com.atlas.booking.BookingRebooked;
 import com.atlas.booking.ReleasedSeats;
 import com.atlas.catalog.AvailabilityApi;
 
 /**
- * Devolve ao catálogo os assentos de uma reserva cancelada ou remarcada.
+ * Devolve ao catálogo os assentos de uma reserva cancelada, remarcada ou com hold expirado. É o único lugar
+ * que devolve assento: todo caminho que libera uma reserva publica um evento.
  * <p>
  * Fica no booking e não no catalog porque o booking já depende do catalog (AvailabilityApi); um
  * listener no catalog ouvindo evento do booking fecharia um ciclo, que o ModularityTests não aceita.
@@ -31,6 +33,11 @@ class SeatReturnListener {
 
     @EventListener
     void on(BookingRebooked event) {
+        event.releasedSeats().forEach(this::release);
+    }
+
+    @EventListener
+    void on(BookingExpired event) {
         event.releasedSeats().forEach(this::release);
     }
 

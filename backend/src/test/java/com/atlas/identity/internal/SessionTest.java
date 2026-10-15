@@ -91,6 +91,9 @@ class SessionTest {
     @Autowired
     JwtEncoder encoder;
 
+    @Autowired
+    RefreshTokenCleanup cleanup;
+
     String email;
 
     @BeforeEach
@@ -212,6 +215,22 @@ class SessionTest {
                 JwtClaimsSet.builder().issuer("outro-sistema").subject(UUID.randomUUID().toString())
                         .issuedAt(now).expiresAt(now.plusSeconds(600)).claim("role", "USER").build())).getTokenValue();
         mvc.perform(get("/me").header("Authorization", "Bearer " + foreign)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void cleanupRemovesOnlyFamiliesDeadForAWeek() throws Exception {
+        jdbc.execute("DELETE FROM refresh_tokens");
+        Cookie loggedOut = refreshCookie(login().andReturn());
+        mvc.perform(post("/auth/logout").cookie(loggedOut)).andExpect(status().isNoContent());
+        Cookie rotated = refreshCookie(refresh(refreshCookie(login().andReturn())).andReturn()); // família de 2 tokens
+
+        clock.advance(Duration.ofDays(6));
+        Cookie active = refreshCookie(refresh(rotated).andReturn()); // em uso: a família continua viva
+        assertThat(cleanup.purge()).isZero(); // a do logout morreu há só 6 dias
+
+        clock.advance(Duration.ofDays(2));
+        assertThat(cleanup.purge()).isEqualTo(1); // a do logout, 8 dias depois
+        refresh(active).andExpect(status().isOk());
     }
 
     @Test

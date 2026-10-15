@@ -20,7 +20,7 @@ jobs:
           cache: maven
       # Os testes usam Testcontainers; o runner do GitHub já traz Docker.
       - name: Build e testes
-        run: mvn -B verify
+        run: ./mvnw -B verify
       - name: Docs do Modulith (artefato)
         if: always()
         uses: actions/upload-artifact@v4

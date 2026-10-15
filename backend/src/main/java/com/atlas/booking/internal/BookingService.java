@@ -27,6 +27,7 @@ import com.atlas.audit.AuditEntry;
 import com.atlas.audit.AuditLog;
 import com.atlas.booking.BookingApi;
 import com.atlas.booking.BookingCancelled;
+import com.atlas.booking.BookingExpired;
 import com.atlas.booking.BookingRebooked;
 import com.atlas.booking.BookingRejectedException;
 import com.atlas.booking.BookingStatus;
@@ -170,15 +171,35 @@ class BookingService implements BookingApi {
         Instant now = clock.instant();
         List<Booking> due = bookings.lockExpiredHolds(now, props.expirationBatchSize());
         for (Booking booking : due) {
-            for (BookingItem item : booking.getItems()) {
-                availability.releaseSeats(item.getFlightId(), item.getFareClassCode(), item.getSeats());
-            }
             booking.expire(now);
+            // como no cancelamento e na remarcação, quem devolve os assentos é o SeatReturnListener
+            events.publishEvent(new BookingExpired(booking.getId(), releasedSeats(booking)));
             audit.record(new AuditEntry(null, "BOOKING_EXPIRED", ENTITY, booking.getId().toString(), Map.of(
                     "code", booking.getCode(),
                     "holdExpiresAt", booking.getHoldExpiresAt())));
         }
         return due.size();
+    }
+
+    /**
+     * O usuário desiste de um hold antes de pagar: os assentos voltam na hora em vez de esperar os 15 min.
+     * Fica fora da {@link BookingApi}, como o pagamento: é ação da UI. Sem dinheiro envolvido, então sem
+     * ação pendente; o hold vira CANCELLED com reembolso zero.
+     */
+    @Transactional
+    BookingView releaseHold(UUID bookingId) {
+        UUID userId = currentUser.id();
+        Booking booking = bookings.lockByIdAndUserId(bookingId, userId)
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
+        if (booking.getStatus() != BookingStatus.HELD) {
+            throw new BookingRejectedException(INVALID_STATE, "Booking is " + booking.getStatus());
+        }
+        Instant now = clock.instant();
+        booking.releaseHold(now);
+        events.publishEvent(new BookingCancelled(booking.getId(), userId, booking.refund(), releasedSeats(booking)));
+        audit.record(new AuditEntry(userId, "BOOKING_HOLD_RELEASED", ENTITY, booking.getId().toString(),
+                Map.of("code", booking.getCode())));
+        return toView(booking);
     }
 
     // ---- cancelamento ---------------------------------------------------------------------------

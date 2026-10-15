@@ -149,6 +149,14 @@ class Booking implements Persistable<UUID> {
         this.refundReference = refundReference;
     }
 
+    /** Desistência de um hold não pago: nada foi cobrado, então o reembolso é zero. */
+    void releaseHold(Instant now) {
+        requireStatus(BookingStatus.HELD);
+        this.status = BookingStatus.CANCELLED;
+        this.cancelledAt = now;
+        this.refundAmount = BigDecimal.ZERO;
+    }
+
     void markRebooked(Instant now, UUID newBookingId) {
         requireStatus(BookingStatus.CONFIRMED);
         this.status = BookingStatus.REBOOKED;

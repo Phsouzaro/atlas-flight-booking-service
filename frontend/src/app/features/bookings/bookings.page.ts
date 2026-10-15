@@ -38,6 +38,12 @@ export class BookingsPage implements OnInit {
   protected readonly cardToken = signal('tok_visa');
   private payKey = newIdempotencyKey();
 
+  // desistência de hold
+  protected readonly releasing = signal<BookingView | null>(null);
+  protected readonly releaseBusy = signal(false);
+  protected readonly releaseError = signal<string | null>(null);
+  private releaseKey = newIdempotencyKey();
+
   // cancelamento: a cotação vira uma ação pendente mostrada embaixo da reserva
   protected readonly quoting = signal<string | null>(null);
   protected readonly proposals = signal<Record<string, PendingActionView>>({});
@@ -94,6 +100,34 @@ export class BookingsPage implements OnInit {
       }
     } finally {
       this.payBusy.set(false);
+    }
+  }
+
+  protected startRelease(booking: BookingView): void {
+    this.releasing.set(booking);
+    this.releaseError.set(null);
+    this.releaseKey = newIdempotencyKey();
+  }
+
+  protected async release(): Promise<void> {
+    const booking = this.releasing();
+    if (!booking) {
+      return;
+    }
+    this.releaseBusy.set(true);
+    this.releaseError.set(null);
+    try {
+      const released = await firstValueFrom(this.api.release(booking.id, this.releaseKey));
+      this.replace(released);
+      this.notice.set(`Assentos da reserva ${released.code} liberados.`);
+      this.releasing.set(null);
+    } catch (e) {
+      this.releaseError.set(describeError(e));
+      if (problemOf(e).status !== 0) {
+        this.releaseKey = newIdempotencyKey();
+      }
+    } finally {
+      this.releaseBusy.set(false);
     }
   }
 

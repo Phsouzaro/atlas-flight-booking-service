@@ -55,6 +55,11 @@ export class BookingsApi {
     return this.http.post<BookingView>(`${API}/bookings/${bookingId}/confirm`, { cardToken }, idempotent(key));
   }
 
+  /** Desiste de um hold não pago; os assentos voltam na hora. */
+  release(bookingId: string, key: string): Observable<BookingView> {
+    return this.http.post<BookingView>(`${API}/bookings/${bookingId}/release`, null, idempotent(key));
+  }
+
   /** Só cota: cria uma ação pendente que o usuário confirma em seguida. */
   quoteCancellation(bookingId: string): Observable<CancellationQuote> {
     return this.http.post<CancellationQuote>(`${API}/bookings/${bookingId}/cancellation-quote`, null);

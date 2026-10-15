@@ -31,6 +31,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -54,6 +55,9 @@ import com.jayway.jsonpath.JsonPath;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
+// o teste de falha do modelo gera stack traces esperadas do retry do Spring AI: silêncio na saída.
+// Nível de log precisa estar no ambiente desde o início; @DynamicPropertySource chega tarde demais.
+@TestPropertySource(properties = "logging.level.org.springframework.ai.retry=OFF")
 class AssistantFlowTest {
 
     static final Instant NOW = Instant.parse("2026-03-10T12:00:00Z");

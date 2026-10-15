@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bookings/{id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bookings/{id}/rebooking-proposal": {
         parameters: {
             query?: never;
@@ -110,6 +126,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["logout"];
         delete?: never;
         options?: never;
         head?: never;
@@ -276,6 +324,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["endAllSessions"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -290,6 +354,7 @@ export interface components {
             payload: {
                 [key: string]: Record<string, never>;
             };
+            /** @default null */
             result: {
                 [key: string]: Record<string, never> | null;
             } | null;
@@ -301,6 +366,7 @@ export interface components {
             decidedAt: string | null;
         };
         ConfirmRequest: {
+            /** @default  */
             cardToken: string | null;
         };
         HoldBookingCommand: {
@@ -334,6 +400,7 @@ export interface components {
             cancelledAt: string | null;
             /** Format: date-time */
             rebookedAt: string | null;
+            /** @default  */
             paymentReference: string | null;
             refund: components["schemas"]["Money"];
             /** Format: uuid */
@@ -403,6 +470,7 @@ export interface components {
             expiresAt: string;
         };
         RegisterRequest: {
+            /** Format: email */
             email: string;
             password: string;
         };
@@ -412,15 +480,15 @@ export interface components {
             email: string;
             role: string;
         };
-        LoginRequest: {
-            email: string;
-            password: string;
-        };
         TokenResponse: {
             accessToken: string;
             tokenType: string;
             /** Format: int64 */
             expiresIn: number;
+        };
+        LoginRequest: {
+            email: string;
+            password: string;
         };
         ConversationView: {
             /** Format: uuid */
@@ -636,6 +704,30 @@ export interface operations {
             };
         };
     };
+    release: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hold liberado (reserva CANCELLED, reembolso zero) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BookingView"];
+                };
+            };
+        };
+    };
     proposeRebooking: {
         parameters: {
             query?: never;
@@ -733,6 +825,48 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["UserResponse"];
                 };
+            };
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                atlas_refresh?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                atlas_refresh?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -998,6 +1132,24 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["AirportView"][];
                 };
+            };
+        };
+    };
+    endAllSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

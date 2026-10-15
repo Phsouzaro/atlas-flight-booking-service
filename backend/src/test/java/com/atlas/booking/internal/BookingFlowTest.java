@@ -47,6 +47,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.atlas.audit.AuditEntry;
 import com.atlas.audit.AuditLog;
 import com.atlas.shared.MutableClock;
+import com.atlas.shared.idempotency.IdempotencyKeyCleanup;
 import com.jayway.jsonpath.JsonPath;
 
 /** Hold, confirmação, expiração e Idempotency-Key contra um PostgreSQL real. */
@@ -89,6 +90,9 @@ class BookingFlowTest {
 
     @Autowired
     AuditLog auditLog;
+
+    @Autowired
+    IdempotencyKeyCleanup idempotencyCleanup;
 
     UUID me = UUID.randomUUID();
     UUID flight;
@@ -336,6 +340,45 @@ class BookingFlowTest {
     }
 
     @Test
+    void releasingAHoldReturnsTheSeatsRightAway() throws Exception {
+        String bookingId = holdId(me, "k-1", holdBody(flight, 3));
+        assertThat(available(jdbc, flight)).isEqualTo(7);
+        clock.advance(Duration.ofMinutes(1));
+
+        release(me, "r-1", bookingId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.refund.amount").value(0));
+        assertThat(available(jdbc, flight)).isEqualTo(10);
+        assertThat(auditActions(bookingId)).containsExactly("BOOKING_HELD", "BOOKING_HOLD_RELEASED");
+
+        // repetir com a mesma chave não devolve assento de novo; outra chave encontra a reserva já cancelada
+        release(me, "r-1", bookingId).andExpect(status().isOk());
+        release(me, "r-2", bookingId).andExpect(status().isConflict()).andExpect(jsonPath("$.reason").value("INVALID_STATE"));
+        assertThat(available(jdbc, flight)).isEqualTo(10);
+    }
+
+    @Test
+    void onlyHeldBookingsOfTheOwnerCanBeReleased() throws Exception {
+        String bookingId = holdId(me, "k-1", holdBody(flight, 1));
+        release(UUID.randomUUID(), "r-1", bookingId).andExpect(status().isNotFound());
+
+        confirm(me, "c-1", bookingId, "tok_visa").andExpect(status().isOk());
+        release(me, "r-2", bookingId).andExpect(status().isConflict());
+        assertThat(available(jdbc, flight)).isEqualTo(9);
+    }
+
+    @Test
+    void oldIdempotencyKeysArePurged() throws Exception {
+        hold(me, "old", holdBody(flight, 1)).andExpect(status().isCreated());
+        clock.advance(Duration.ofHours(25));
+        hold(me, "recent", holdBody(flight, 1)).andExpect(status().isCreated());
+
+        assertThat(idempotencyCleanup.purge()).isEqualTo(1);
+        assertThat(jdbc.queryForList("SELECT idempotency_key FROM idempotency_keys", String.class)).containsExactly("recent");
+    }
+
+    @Test
     void bookingsRequireAuthentication() throws Exception {
         mvc.perform(get("/bookings")).andExpect(status().isUnauthorized());
         mvc.perform(post("/bookings").header("Idempotency-Key", "k").contentType(APPLICATION_JSON)
@@ -354,6 +397,10 @@ class BookingFlowTest {
         String response = hold(userId, key, body).andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return JsonPath.read(response, "$.id");
+    }
+
+    private ResultActions release(UUID userId, String key, String bookingId) throws Exception {
+        return mvc.perform(post("/bookings/{id}/release", bookingId).with(user(userId)).header("Idempotency-Key", key));
     }
 
     private ResultActions confirm(UUID userId, String key, String bookingId, String cardToken) throws Exception {
