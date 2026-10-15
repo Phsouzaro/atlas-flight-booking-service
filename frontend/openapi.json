@@ -1,0 +1,1676 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Atlas Flight Booking API",
+    "description": "Assistente de reservas de voos com IA. Faça login em /auth/login, clique em Authorize e cole o accessToken.",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/pending-actions/{id}/reject": {
+      "post": {
+        "tags": [
+          "pending-action-controller"
+        ],
+        "operationId": "reject",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ação rejeitada",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingActionView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/pending-actions/{id}/confirm": {
+      "post": {
+        "tags": [
+          "pending-action-controller"
+        ],
+        "operationId": "confirm",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ação executada; o resultado vem em result",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingActionView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/bookings": {
+      "get": {
+        "tags": [
+          "booking-controller"
+        ],
+        "operationId": "myBookings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookingView"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "booking-controller"
+        ],
+        "operationId": "hold",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldBookingCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Hold criado (ou o mesmo, se a chave se repetir)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/bookings/{id}/rebooking-proposal": {
+      "post": {
+        "tags": [
+          "booking-controller"
+        ],
+        "operationId": "proposeRebooking",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RebookingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RebookingProposal"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/bookings/{id}/confirm": {
+      "post": {
+        "tags": [
+          "booking-controller"
+        ],
+        "operationId": "confirm_1",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmBookingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Reserva confirmada",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/bookings/{id}/cancellation-quote": {
+      "post": {
+        "tags": [
+          "booking-controller"
+        ],
+        "operationId": "quoteCancellation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancellationQuote"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assistant/conversations": {
+      "get": {
+        "tags": [
+          "assistant-controller"
+        ],
+        "operationId": "myConversations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConversationView"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "assistant-controller"
+        ],
+        "operationId": "start",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/assistant/conversations/{id}/messages": {
+      "get": {
+        "tags": [
+          "assistant-controller"
+        ],
+        "operationId": "messages",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MessageView"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "assistant-controller"
+        ],
+        "operationId": "send",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantReply"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/pending-actions": {
+      "get": {
+        "tags": [
+          "pending-action-controller"
+        ],
+        "operationId": "myActions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingActionView"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/pending-actions/{id}": {
+      "get": {
+        "tags": [
+          "pending-action-controller"
+        ],
+        "operationId": "action",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingActionView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/me": {
+      "get": {
+        "tags": [
+          "me-controller"
+        ],
+        "operationId": "me",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/flights": {
+      "get": {
+        "tags": [
+          "catalog-controller"
+        ],
+        "operationId": "searchFlights",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "[A-Za-z]{3}",
+              "type": "string"
+            }
+          },
+          {
+            "name": "destination",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "[A-Za-z]{3}",
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "pax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "maximum": 9,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FlightView"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/flights/{id}": {
+      "get": {
+        "tags": [
+          "catalog-controller"
+        ],
+        "operationId": "flight",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/bookings/{id}": {
+      "get": {
+        "tags": [
+          "booking-controller"
+        ],
+        "operationId": "booking",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/airports": {
+      "get": {
+        "tags": [
+          "catalog-controller"
+        ],
+        "operationId": "airports",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AirportView"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PendingActionView": {
+        "required": [
+          "createdAt",
+          "decidedAt",
+          "expiresAt",
+          "id",
+          "payload",
+          "result",
+          "status",
+          "summary",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "REJECTED",
+              "EXPIRED"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "nullable": true
+            },
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ConfirmRequest": {
+        "required": [
+          "cardToken"
+        ],
+        "type": "object",
+        "properties": {
+          "cardToken": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "HoldBookingCommand": {
+        "required": [
+          "fareClass",
+          "flightId",
+          "passengers"
+        ],
+        "type": "object",
+        "properties": {
+          "flightId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fareClass": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "passengers": {
+            "maxItems": 9,
+            "minItems": 0,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PassengerInfo"
+            }
+          }
+        }
+      },
+      "PassengerInfo": {
+        "required": [
+          "birthDate",
+          "documentNumber",
+          "fullName"
+        ],
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "maxLength": 120,
+            "minLength": 0,
+            "type": "string"
+          },
+          "documentNumber": {
+            "maxLength": 30,
+            "minLength": 0,
+            "pattern": "[A-Za-z0-9.\\-]+",
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "BookingView": {
+        "required": [
+          "cancelledAt",
+          "code",
+          "confirmedAt",
+          "createdAt",
+          "expiredAt",
+          "holdExpiresAt",
+          "id",
+          "items",
+          "passengers",
+          "paymentReference",
+          "rebookedAt",
+          "rebookedFromId",
+          "rebookedToId",
+          "refund",
+          "status",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "HELD",
+              "CONFIRMED",
+              "CANCELLED",
+              "REBOOKED",
+              "EXPIRED"
+            ]
+          },
+          "total": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "holdExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "rebookedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "paymentReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "refund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "rebookedFromId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "rebookedToId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            }
+          },
+          "passengers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PassengerInfo"
+            }
+          }
+        }
+      },
+      "Item": {
+        "required": [
+          "departureAt",
+          "destination",
+          "fareClass",
+          "flightId",
+          "flightNumber",
+          "origin",
+          "seats",
+          "unitPrice"
+        ],
+        "type": "object",
+        "properties": {
+          "flightId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "flightNumber": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "departureAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fareClass": {
+            "type": "string"
+          },
+          "seats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "$ref": "#/components/schemas/Money"
+          }
+        }
+      },
+      "Money": {
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "RebookingRequest": {
+        "required": [
+          "fareClass",
+          "flightId"
+        ],
+        "type": "object",
+        "properties": {
+          "flightId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fareClass": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      },
+      "RebookingProposal": {
+        "required": [
+          "amountDue",
+          "bookingCode",
+          "bookingId",
+          "changeFee",
+          "expiresAt",
+          "fareDifference",
+          "newDepartureAt",
+          "newFareClass",
+          "newFlightId",
+          "newFlightNumber",
+          "pendingActionId",
+          "seats"
+        ],
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bookingCode": {
+            "type": "string"
+          },
+          "newFlightId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "newFlightNumber": {
+            "type": "string"
+          },
+          "newDepartureAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "newFareClass": {
+            "type": "string"
+          },
+          "seats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "changeFee": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "fareDifference": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "amountDue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "pendingActionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConfirmBookingRequest": {
+        "required": [
+          "cardToken"
+        ],
+        "type": "object",
+        "properties": {
+          "cardToken": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
+      "CancellationQuote": {
+        "required": [
+          "bookingCode",
+          "bookingId",
+          "expiresAt",
+          "freeWindow",
+          "paid",
+          "pendingActionId",
+          "refund",
+          "retained",
+          "rule"
+        ],
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bookingCode": {
+            "type": "string"
+          },
+          "paid": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "retained": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "refund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "freeWindow": {
+            "type": "boolean"
+          },
+          "rule": {
+            "type": "string"
+          },
+          "pendingActionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "minLength": 0,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 72,
+            "minLength": 8,
+            "type": "string"
+          }
+        }
+      },
+      "UserResponse": {
+        "required": [
+          "email",
+          "id",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      },
+      "TokenResponse": {
+        "required": [
+          "accessToken",
+          "expiresIn",
+          "tokenType"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "tokenType": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ConversationView": {
+        "required": [
+          "createdAt",
+          "id",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SendMessageRequest": {
+        "required": [
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      },
+      "AssistantReply": {
+        "required": [
+          "attachments",
+          "content",
+          "conversationId",
+          "messageId",
+          "pendingActions",
+          "promptVersion",
+          "toolCalls",
+          "usage"
+        ],
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "messageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "content": {
+            "type": "string"
+          },
+          "toolCalls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pendingActions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingActionView"
+            }
+          },
+          "attachments": {
+            "$ref": "#/components/schemas/Attachments"
+          },
+          "promptVersion": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/TokenUsage"
+          }
+        }
+      },
+      "Attachments": {
+        "required": [
+          "bookings",
+          "flights"
+        ],
+        "type": "object",
+        "properties": {
+          "flights": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlightInfo"
+            }
+          },
+          "bookings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookingInfo"
+            }
+          }
+        }
+      },
+      "BookingInfo": {
+        "required": [
+          "bookingId",
+          "code",
+          "departureLocal",
+          "fareClass",
+          "flightNumber",
+          "holdExpiresAt",
+          "passengerNames",
+          "passengers",
+          "route",
+          "status",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "flightNumber": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "departureLocal": {
+            "type": "string"
+          },
+          "fareClass": {
+            "type": "string"
+          },
+          "passengers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "passengerNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total": {
+            "type": "string"
+          },
+          "holdExpiresAt": {
+            "type": "string"
+          }
+        }
+      },
+      "FareInfo": {
+        "required": [
+          "availableSeats",
+          "fareClass",
+          "name",
+          "pricePerPassenger"
+        ],
+        "type": "object",
+        "properties": {
+          "fareClass": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "availableSeats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pricePerPassenger": {
+            "type": "string"
+          }
+        }
+      },
+      "FlightInfo": {
+        "required": [
+          "arrivalLocal",
+          "departureLocal",
+          "destination",
+          "durationMinutes",
+          "fares",
+          "flightId",
+          "flightNumber",
+          "origin"
+        ],
+        "type": "object",
+        "properties": {
+          "flightId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "flightNumber": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "departureLocal": {
+            "type": "string"
+          },
+          "arrivalLocal": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "fares": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FareInfo"
+            }
+          }
+        }
+      },
+      "TokenUsage": {
+        "required": [
+          "completionTokens",
+          "promptTokens"
+        ],
+        "type": "object",
+        "properties": {
+          "promptTokens": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completionTokens": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AirportView": {
+        "required": [
+          "city",
+          "code",
+          "countryCode",
+          "name",
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          }
+        }
+      },
+      "FareOption": {
+        "required": [
+          "availableSeats",
+          "cabin",
+          "fareClass",
+          "name",
+          "price"
+        ],
+        "type": "object",
+        "properties": {
+          "fareClass": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "cabin": {
+            "type": "string"
+          },
+          "availableSeats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "price": {
+            "$ref": "#/components/schemas/Money"
+          }
+        }
+      },
+      "FlightView": {
+        "required": [
+          "arrivalAt",
+          "departureAt",
+          "destination",
+          "durationMinutes",
+          "fares",
+          "flightNumber",
+          "id",
+          "origin"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "flightNumber": {
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/AirportView"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/AirportView"
+          },
+          "departureAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrivalAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "fares": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FareOption"
+            }
+          }
+        }
+      },
+      "MessageView": {
+        "required": [
+          "attachments",
+          "content",
+          "createdAt",
+          "id",
+          "pendingActionIds",
+          "role",
+          "toolCalls"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "toolCalls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pendingActionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "attachments": {
+            "$ref": "#/components/schemas/Attachments"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

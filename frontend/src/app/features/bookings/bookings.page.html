@@ -1,0 +1,94 @@
+<section class="page">
+  <header class="title">
+    <h1>Minhas reservas</h1>
+    <p class="muted">Horários no fuso de Brasília.</p>
+  </header>
+
+  @if (notice()) {
+    <p class="notice" role="status">{{ notice() }} <button type="button" class="link" (click)="notice.set(null)">Fechar</button></p>
+  }
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  @if (bookings(); as list) {
+    @for (b of list; track b.id) {
+      <article class="card booking">
+        <header>
+          <div>
+            <h2>Reserva {{ b.code }}</h2>
+            <p class="muted">Criada em {{ b.createdAt | instant }}</p>
+          </div>
+          <span [class]="badge(b.status)">{{ statusLabel(b.status) }}</span>
+        </header>
+
+        @for (item of b.items; track item.flightId) {
+          <p class="flight">
+            <strong>{{ item.flightNumber }}</strong> · {{ item.origin }} → {{ item.destination }} ·
+            {{ item.departureAt | instant }} · {{ fareLabel(item.fareClass) }}
+          </p>
+        }
+        <p class="muted">{{ b.passengers.length }} {{ b.passengers.length === 1 ? 'passageiro' : 'passageiros' }}:
+          @for (p of b.passengers; track $index) {{{ p.fullName }}{{ $last ? '' : ', ' }}}</p>
+
+        <footer>
+          <div class="totals">
+            <strong>{{ b.total | money }}</strong>
+            @if (b.refund; as refund) {
+              <span class="muted">Reembolso: {{ refund | money }}</span>
+            }
+          </div>
+          <div class="actions">
+            @switch (b.status) {
+              @case ('HELD') {
+                @if (countdown(b.holdExpiresAt); as left) {
+                  <span class="warn-text">Pague em {{ left }}</span>
+                  <button type="button" class="primary" (click)="startPayment(b)" [attr.aria-label]="'Pagar a reserva ' + b.code">Pagar</button>
+                } @else {
+                  <span class="muted">Prazo encerrado</span>
+                }
+              }
+              @case ('CONFIRMED') {
+                <button type="button" (click)="rebook(b)" [attr.aria-label]="'Remarcar a reserva ' + b.code">Remarcar</button>
+                <button type="button" class="danger" (click)="quoteCancellation(b)" [disabled]="quoting() === b.id"
+                        [attr.aria-label]="'Cancelar a reserva ' + b.code">
+                  {{ quoting() === b.id ? 'Cotando…' : 'Cancelar' }}
+                </button>
+              }
+            }
+          </div>
+        </footer>
+
+        @if (proposals()[b.id]; as action) {
+          <app-pending-action-card [action]="action" (changed)="proposalChanged(b.id, $event)" />
+        }
+      </article>
+    } @empty {
+      <div class="card empty">
+        <p>Você ainda não tem reservas.</p>
+        <p class="muted">Peça ao assistente para buscar um voo e segurar os assentos.</p>
+      </div>
+    }
+  } @else if (!error()) {
+    <p class="muted">Carregando…</p>
+  }
+</section>
+
+@if (paying(); as b) {
+  <app-dialog [heading]="'Pagar a reserva ' + b.code" [locked]="payBusy()" (closed)="closePayment()">
+    <p>Total: <strong>{{ b.total | money }}</strong></p>
+    @if (countdown(b.holdExpiresAt); as left) {
+      <p class="muted">Os assentos ficam segurados por mais {{ left }}.</p>
+    }
+    <app-card-picker [(token)]="cardToken" />
+    @if (payError()) {
+      <p class="error" role="alert">{{ payError() }}</p>
+    }
+    <div class="dialog-actions">
+      <button type="button" (click)="closePayment()" [disabled]="payBusy()">Voltar</button>
+      <button type="button" class="primary" (click)="pay()" [disabled]="payBusy()">
+        {{ payBusy() ? 'Pagando…' : 'Pagar ' + (b.total | money) }}
+      </button>
+    </div>
+  </app-dialog>
+}
