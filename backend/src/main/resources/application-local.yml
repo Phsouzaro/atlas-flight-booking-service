@@ -7,4 +7,4 @@ app:
 
 logging:
   level:
-    com.flightsai: DEBUG
+    com.atlas: DEBUG

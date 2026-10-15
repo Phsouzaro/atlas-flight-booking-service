@@ -35,8 +35,8 @@ atlas-flight-booking-service/
 │   ├── pom.xml
 │   ├── Dockerfile
 │   └── src/
-│       ├── main/java/com/flightsai/
-│       │   ├── FlightsAiApplication.java
+│       ├── main/java/com/atlas/
+│       │   ├── AtlasApplication.java
 │       │   ├── identity/        # módulo: API pública = CurrentUser
 │       │   │   └── internal/    #   implementação privada (controllers, service, JPA, JWT)
 │       │   └── shared/          # módulo aberto: relógio e configs comuns

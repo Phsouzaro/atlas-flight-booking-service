@@ -41,7 +41,7 @@ que lê o `subject` do token já validado. Esse é o padrão que as tools da IA 
 
 ## 3. Fronteiras de módulo (Spring Modulith)
 
-Cada pacote direto de `com.flightsai` é um módulo. Regras:
+Cada pacote direto de `com.atlas` é um módulo. Regras:
 
 | Local | Visibilidade |
 |---|---|
@@ -114,7 +114,7 @@ entre teste e ambiente real é mínima.
 
 ## 9. Como criar um módulo novo (checklist da fase 1)
 
-1. Criar o pacote `com.flightsai.catalog` com uma classe pública de API (interface ou record).
+1. Criar o pacote `com.atlas.catalog` com uma classe pública de API (interface ou record).
 2. Colocar controllers, services, entidades e repositórios em `catalog.internal`, package-private.
 3. Criar a migration `V3__catalog.sql` com as tabelas do módulo.
 4. Expor ao resto do sistema apenas o que for necessário no pacote raiz.

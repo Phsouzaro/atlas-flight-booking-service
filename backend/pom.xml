@@ -13,7 +13,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.flightsai</groupId>
+    <groupId>com.atlas</groupId>
     <artifactId>atlas-flight-booking-service</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <name>atlas-flight-booking-service</name>
