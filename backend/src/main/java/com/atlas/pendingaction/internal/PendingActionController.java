@@ -71,7 +71,7 @@ class PendingActionController {
                 () -> ResponseEntity.ok(actions.reject(id)));
     }
 
-    record ConfirmRequest(@Size(max = 100) String cardToken) {
+    record ConfirmRequest(@Schema(nullable = true) @Size(max = 100) String cardToken) {
     }
 
     record ConfirmKey(UUID actionId, String cardToken) {

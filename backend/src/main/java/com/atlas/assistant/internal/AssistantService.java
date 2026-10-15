@@ -146,12 +146,13 @@ class AssistantService {
             TurnContext.close();
         }
 
+        Attachments attachments = turn.attachments();
         UUID replyId = store.insertReply(conversationId, userMessageId, result.text(), systemPrompt.version(),
-                turn.toolCalls(), turn.pendingActionIds(), toolContext(turn), result.usage(), clock.instant());
+                turn.toolCalls(), turn.pendingActionIds(), attachments, toolContext(turn), result.usage(), clock.instant());
         log.info("Assistant turn in conversation {}: tools={} tokens={}/{}", conversationId, turn.toolCalls(),
                 result.usage().promptTokens(), result.usage().completionTokens());
         return new Turn(new AssistantReply(conversationId, replyId, result.text(), turn.toolCalls(),
-                pendingActionViews(turn.pendingActionIds()), systemPrompt.version(), result.usage()), false);
+                pendingActionViews(turn.pendingActionIds()), attachments, systemPrompt.version(), result.usage()), false);
     }
 
     record Turn(AssistantReply reply, boolean replayed) {
@@ -242,7 +243,7 @@ class AssistantService {
 
     private AssistantReply toReply(UUID conversationId, ConversationStore.StoredReply r) {
         return new AssistantReply(conversationId, r.id(), r.content(), r.toolCalls(), pendingActionViews(r.pendingActionIds()),
-                r.promptVersion(), new TokenUsage(r.promptTokens(), r.completionTokens()));
+                r.attachments(), r.promptVersion(), new TokenUsage(r.promptTokens(), r.completionTokens()));
     }
 
     private List<PendingActionView> pendingActionViews(List<UUID> ids) {

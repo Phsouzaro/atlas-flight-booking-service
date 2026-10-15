@@ -58,27 +58,36 @@ class AssistantTools {
             @ToolParam(description = "Código IATA do destino, ex.: GIG") String destination,
             @ToolParam(description = "Data da partida no formato AAAA-MM-DD, no fuso da origem") String date,
             @ToolParam(description = "Quantidade de passageiros, de 1 a 9") int passengers) {
-        return flights.search(new FlightSearchCriteria(origin, destination, parseDate(date), passengers)).stream()
+        List<FlightInfo> found = flights.search(new FlightSearchCriteria(origin, destination, parseDate(date), passengers))
+                .stream()
                 .limit(MAX_FLIGHTS)
                 .map(FlightInfo::from)
                 .toList();
+        TurnContext.current().recordFlights(found);
+        return found;
     }
 
     @Tool(description = "Detalhe de um voo com todas as tarifas, inclusive esgotadas.")
     public FlightInfo getFlightDetails(@ToolParam(description = "flightId devolvido por searchFlights") String flightId) {
-        return flights.findFlight(parseId(flightId, "flightId")).map(FlightInfo::from)
+        FlightInfo flight = flights.findFlight(parseId(flightId, "flightId")).map(FlightInfo::from)
                 .orElseThrow(() -> new IllegalArgumentException("Voo não encontrado: " + flightId));
+        TurnContext.current().recordFlights(List.of(flight));
+        return flight;
     }
 
     @Tool(description = "Reservas do usuário logado, da mais recente para a mais antiga.")
     public List<BookingInfo> getMyBookings() {
-        return bookings.myBookings().stream().map(this::bookingInfo).toList();
+        List<BookingInfo> mine = bookings.myBookings().stream().map(this::bookingInfo).toList();
+        TurnContext.current().recordBookings(mine);
+        return mine;
     }
 
     @Tool(description = "Detalhe de uma reserva do usuário logado.")
     public BookingInfo getBookingDetails(@ToolParam(description = "bookingId devolvido por getMyBookings") String bookingId) {
-        return bookings.findMyBooking(parseId(bookingId, "bookingId")).map(this::bookingInfo)
+        BookingInfo booking = bookings.findMyBooking(parseId(bookingId, "bookingId")).map(this::bookingInfo)
                 .orElseThrow(() -> new IllegalArgumentException("Reserva não encontrada: " + bookingId));
+        TurnContext.current().recordBookings(List.of(booking));
+        return booking;
     }
 
     @Tool(description = "Segura assentos por 15 minutos (status HELD). Não cobra nada: o pagamento é feito pelo "
@@ -96,7 +105,9 @@ class AssistantTools {
         if (info.isEmpty() || info.size() > HoldBookingCommand.MAX_PASSENGERS) {
             throw new IllegalArgumentException("Informe de 1 a " + HoldBookingCommand.MAX_PASSENGERS + " passageiros");
         }
-        return bookingInfo(bookings.hold(new HoldBookingCommand(parseId(flightId, "flightId"), fareClass, info)));
+        BookingInfo held = bookingInfo(bookings.hold(new HoldBookingCommand(parseId(flightId, "flightId"), fareClass, info)));
+        TurnContext.current().recordBookings(List.of(held));
+        return held;
     }
 
     @Tool(description = "Cota o cancelamento de uma reserva confirmada e cria uma proposta para o usuário confirmar "

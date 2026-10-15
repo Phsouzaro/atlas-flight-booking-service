@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * Ação pendente como o dono vê.
  *
@@ -15,8 +17,8 @@ public record PendingActionView(
         PendingActionStatus status,
         String summary,
         Map<String, Object> payload,
-        Map<String, Object> result,
+        @Schema(nullable = true) Map<String, Object> result,
         Instant createdAt,
         Instant expiresAt,
-        Instant decidedAt) {
+        @Schema(nullable = true) Instant decidedAt) {
 }

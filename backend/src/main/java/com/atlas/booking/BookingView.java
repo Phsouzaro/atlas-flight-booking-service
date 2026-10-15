@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import com.atlas.shared.Money;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * Reserva como o dono vê.
  *
@@ -22,14 +24,14 @@ public record BookingView(
         Money total,
         Instant createdAt,
         Instant holdExpiresAt,
-        Instant confirmedAt,
-        Instant expiredAt,
-        Instant cancelledAt,
-        Instant rebookedAt,
-        String paymentReference,
-        Money refund,
-        UUID rebookedFromId,
-        UUID rebookedToId,
+        @Schema(nullable = true) Instant confirmedAt,
+        @Schema(nullable = true) Instant expiredAt,
+        @Schema(nullable = true) Instant cancelledAt,
+        @Schema(nullable = true) Instant rebookedAt,
+        @Schema(nullable = true) String paymentReference,
+        Money refund, // pode ser null; sem @Schema(nullable) porque ele vazaria para o schema Money inteiro
+        @Schema(nullable = true) UUID rebookedFromId,
+        @Schema(nullable = true) UUID rebookedToId,
         List<Item> items,
         List<PassengerInfo> passengers) {
 

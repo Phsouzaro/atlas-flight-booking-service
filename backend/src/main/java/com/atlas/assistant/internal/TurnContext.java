@@ -1,7 +1,9 @@
 package com.atlas.assistant.internal;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -17,6 +19,9 @@ final class TurnContext {
     private final List<String> toolCalls = new ArrayList<>();
     private final List<UUID> pendingActionIds = new ArrayList<>();
     private final StringBuilder toolResults = new StringBuilder();
+    // por id: a mesma reserva ou voo devolvido por duas tools vira um card só, com o dado mais recente
+    private final Map<UUID, ToolViews.FlightInfo> flights = new LinkedHashMap<>();
+    private final Map<UUID, ToolViews.BookingInfo> bookings = new LinkedHashMap<>();
 
     private TurnContext(UUID conversationId) {
         this.conversationId = conversationId;
@@ -54,6 +59,18 @@ final class TurnContext {
 
     void recordToolResult(String name, String result) {
         toolResults.append(name).append(": ").append(result).append('\n');
+    }
+
+    void recordFlights(List<ToolViews.FlightInfo> found) {
+        found.forEach(f -> flights.put(f.flightId(), f));
+    }
+
+    void recordBookings(List<ToolViews.BookingInfo> found) {
+        found.forEach(b -> bookings.put(b.bookingId(), b));
+    }
+
+    Attachments attachments() {
+        return new Attachments(List.copyOf(flights.values()), List.copyOf(bookings.values()));
     }
 
     /** Resultados das tools do turno, na ordem; vazio se nenhuma rodou. */

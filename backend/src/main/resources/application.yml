@@ -73,5 +73,8 @@ app:
       top-k: 4
 
 springdoc:
+  api-docs:
+    # 3.0 e não 3.1: o 3.1 não tem "nullable", e o cliente gerado do front precisa saber quais campos vêm nulos
+    version: openapi_3_0
   swagger-ui:
     path: /swagger-ui.html
