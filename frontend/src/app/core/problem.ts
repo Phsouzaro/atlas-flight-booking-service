@@ -7,20 +7,24 @@ export interface Problem {
   reason: string | null;
   /** do header Retry-After, quando o backend limitou a requisição (429) */
   retryAfterSeconds: number | null;
+  /** correlation id do request (header X-Trace-Id); com ele se acha o trace e os logs */
+  traceId: string | null;
 }
 
 export function problemOf(error: unknown): Problem {
   if (error instanceof HttpErrorResponse) {
-    const body = (error.error ?? {}) as { detail?: unknown; reason?: unknown };
+    const body = (error.error ?? {}) as { detail?: unknown; reason?: unknown; traceId?: unknown };
     const retryAfter = Number(error.headers?.get('Retry-After'));
+    const traceId = typeof body.traceId === 'string' ? body.traceId : error.headers?.get('X-Trace-Id') ?? null;
     return {
       status: error.status,
       detail: typeof body.detail === 'string' ? body.detail : null,
       reason: typeof body.reason === 'string' ? body.reason : null,
       retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
+      traceId,
     };
   }
-  return { status: 0, detail: null, reason: null, retryAfterSeconds: null };
+  return { status: 0, detail: null, reason: null, retryAfterSeconds: null, traceId: null };
 }
 
 function waitText(seconds: number | null): string {
@@ -63,7 +67,11 @@ export function describeError(error: unknown): string {
       return 'Não encontrado.';
     case 503:
       return 'O assistente está indisponível no momento. Tente de novo em instantes.';
-    default:
-      return problem.detail ?? 'Algo deu errado. Tente de novo.';
   }
+  if (problem.status >= 500) {
+    // erro inesperado: o código leva direto ao trace e aos logs do request
+    const code = problem.traceId ? ` (código ${problem.traceId})` : '';
+    return `Algo deu errado do nosso lado. Tente de novo${code}.`;
+  }
+  return problem.detail ?? 'Algo deu errado. Tente de novo.';
 }

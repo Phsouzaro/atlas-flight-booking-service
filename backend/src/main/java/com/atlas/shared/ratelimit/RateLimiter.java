@@ -14,6 +14,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.TimeMeter;
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * Token bucket por chave (ex.: {@code login:203.0.113.7}), em memória. Vale para uma instância; com
@@ -31,10 +32,14 @@ public class RateLimiter {
             .expireAfterAccess(IDLE)
             .maximumSize(100_000)
             .build();
-    private final TimeMeter time;
+    static final String REJECTIONS_METRIC = "atlas.ratelimit.rejections";
 
-    RateLimiter(Clock clock) {
+    private final TimeMeter time;
+    private final MeterRegistry meters;
+
+    RateLimiter(Clock clock, MeterRegistry meters) {
         this.time = new ClockTimeMeter(clock);
+        this.meters = meters;
     }
 
     /**
@@ -44,7 +49,11 @@ public class RateLimiter {
      */
     public Optional<Duration> tryConsume(String key, Limit limit) {
         ConsumptionProbe probe = bucket(key, limit).tryConsumeAndReturnRemaining(1);
-        return probe.isConsumed() ? Optional.empty() : Optional.of(Duration.ofNanos(probe.getNanosToWaitForRefill()));
+        if (probe.isConsumed()) {
+            return Optional.empty();
+        }
+        rejected(key);
+        return Optional.of(Duration.ofNanos(probe.getNanosToWaitForRefill()));
     }
 
     /** Como {@link #tryConsume}, mas sem gastar: para bloquear antes de saber se a tentativa vai contar. */
@@ -53,7 +62,14 @@ public class RateLimiter {
         if (bucket.getAvailableTokens() > 0) {
             return Optional.empty();
         }
+        rejected(key);
         return Optional.of(Duration.ofNanos(bucket.estimateAbilityToConsume(1).getNanosToWaitForRefill()));
+    }
+
+    /** Conta por regra (o que vem antes do primeiro ":" da chave), nunca por IP ou usuário: cardinalidade baixa. */
+    private void rejected(String key) {
+        int colon = key.indexOf(':');
+        meters.counter(REJECTIONS_METRIC, "rule", colon > 0 ? key.substring(0, colon) : key).increment();
     }
 
     /** Gasta uma ficha sem perguntar; o bloqueio fica para o próximo {@link #check}. */

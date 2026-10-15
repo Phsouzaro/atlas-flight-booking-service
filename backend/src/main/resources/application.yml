@@ -43,11 +43,19 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        # prometheus fica aberto para o scraper da rede interna; o nginx não repassa /api/actuator para fora
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       probes:
         enabled: true
+  tracing:
+    sampling:
+      probability: 1.0   # projeto de demonstração: todo request vira trace. Em produção, baixar.
+  observations:
+    key-values:
+      application: atlas-flight-booking-service
+  # o export dos traces só liga com management.otlp.tracing.endpoint (o Compose aponta para o Jaeger)
 
 app:
   security:
