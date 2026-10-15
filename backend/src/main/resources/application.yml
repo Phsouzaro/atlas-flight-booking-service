@@ -61,7 +61,14 @@ app:
   security:
     jwt:
       secret: ${JWT_SECRET:}   # obrigatório, mínimo 32 bytes; sem ele a aplicação não sobe
-      ttl: 1h
+      ttl: 15m                 # curto de propósito: a sessão continua pelo refresh token
+    refresh:
+      ttl: 7d                  # sem uso por 7 dias, a sessão acaba
+      max-lifetime: 30d        # e acaba de qualquer jeito 30 dias depois do login
+      reuse-grace: 10s         # duas abas renovando juntas não é roubo
+      cookie-name: atlas_refresh
+      cookie-path: /
+      cookie-secure: true      # navegadores aceitam Secure em http://localhost
   booking:
     hold-ttl: 15m
     expiration-job-enabled: true
@@ -87,6 +94,12 @@ app:
         path: /auth/login
         key: IP
         capacity: 20
+        period: 1m
+      refresh:
+        method: POST
+        path: /auth/refresh
+        key: IP
+        capacity: 30
         period: 1m
       register:
         method: POST

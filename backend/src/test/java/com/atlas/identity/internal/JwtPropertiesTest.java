@@ -23,8 +23,8 @@ class JwtPropertiesTest {
     }
 
     @Test
-    void defaultsTtlToOneHour() {
+    void defaultsTtlToFifteenMinutes() {
         JwtProperties props = new JwtProperties("x".repeat(32), null);
-        assertThat(props.ttl()).isEqualTo(Duration.ofHours(1));
+        assertThat(props.ttl()).isEqualTo(Duration.ofMinutes(15));
     }
 }

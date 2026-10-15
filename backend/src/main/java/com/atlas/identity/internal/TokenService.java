@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @Service
 class TokenService {
 
-    private static final String ISSUER = "atlas-flight-booking-service";
+    static final String ISSUER = "atlas-flight-booking-service";
 
     private final JwtEncoder encoder;
     private final JwtProperties props;

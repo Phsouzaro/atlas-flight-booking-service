@@ -22,7 +22,7 @@ public record JwtProperties(String secret, Duration ttl) {
                             .formatted(MIN_SECRET_BYTES));
         }
         if (ttl == null) {
-            ttl = Duration.ofHours(1);
+            ttl = Duration.ofMinutes(15);
         }
     }
 }
