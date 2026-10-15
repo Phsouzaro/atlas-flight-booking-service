@@ -9,8 +9,10 @@ import com.flightsai.shared.Money;
 public record FareAvailability(
         UUID flightId,
         String flightNumber,
+        String origin,
+        String destination,
+        Instant departureAt,
         String fareClass,
         int availableSeats,
-        Money price,
-        Instant departureAt) {
+        Money price) {
 }
