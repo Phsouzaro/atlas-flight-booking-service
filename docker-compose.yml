@@ -29,6 +29,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       # perfil local liga o seeder do catálogo (voos simulados); troque no .env se não quiser
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-missing}   # sem chave o assistente responde 503
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
     ports:
       - "8080:8080"
 

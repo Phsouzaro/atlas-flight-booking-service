@@ -19,6 +19,25 @@ spring:
   mvc:
     problemdetails:
       enabled: true         # erros de validação e de framework em application/problem+json
+  ai:
+    openai:
+      # sem chave o app sobe, mas o assistente responde 503 (ver AssistantProperties)
+      api-key: ${OPENAI_API_KEY:missing}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}
+          temperature: 0.2
+      embedding:
+        options:
+          model: text-embedding-3-small
+    vectorstore:
+      pgvector:
+        initialize-schema: false   # tabela criada pela V11 do Flyway
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+    retry:
+      max-attempts: 2
 
 management:
   endpoints:
@@ -42,6 +61,16 @@ app:
     expiration-batch-size: 100
   pending-actions:
     ttl: 10m
+  assistant:
+    prompt-version: v1
+    max-input-chars: 2000
+    max-output-tokens: 800
+    max-tool-calls-per-turn: 6
+    max-model-calls-per-turn: 4
+    history-window: 20
+    policies:
+      ingest-on-startup: true
+      top-k: 4
 
 springdoc:
   swagger-ui:
