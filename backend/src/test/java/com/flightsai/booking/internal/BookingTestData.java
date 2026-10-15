@@ -25,21 +25,38 @@ final class BookingTestData {
     }
 
     static void reset(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE bookings, idempotency_keys, audit_log, flights, airports CASCADE");
+        jdbc.execute("TRUNCATE pending_actions, bookings, idempotency_keys, audit_log, flights, airports CASCADE");
         jdbc.update("INSERT INTO airports (code, name, city, country_code, time_zone) VALUES "
                 + "('GRU', 'Guarulhos', 'São Paulo', 'BR', 'America/Sao_Paulo'), "
-                + "('GIG', 'Galeão', 'Rio de Janeiro', 'BR', 'America/Sao_Paulo')");
+                + "('GIG', 'Galeão', 'Rio de Janeiro', 'BR', 'America/Sao_Paulo'), "
+                + "('CGH', 'Congonhas', 'São Paulo', 'BR', 'America/Sao_Paulo')");
     }
 
     static UUID flight(JdbcTemplate jdbc, String number, Instant departure, int availableSeats) {
+        UUID id = flightOnRoute(jdbc, number, "GRU", "GIG", departure);
+        addFare(jdbc, id, FARE, availableSeats, PRICE);
+        return id;
+    }
+
+    /** Voo sem tarifa; use {@link #addFare} para cada classe. */
+    static UUID flightOnRoute(JdbcTemplate jdbc, String number, String origin, String destination, Instant departure) {
         UUID id = UUID.randomUUID();
         jdbc.update("INSERT INTO flights (id, flight_number, origin_code, destination_code, departure_at, arrival_at) "
-                        + "VALUES (?, ?, 'GRU', 'GIG', ?, ?)",
-                id, number, departure.atOffset(ZoneOffset.UTC), departure.plusSeconds(3900).atOffset(ZoneOffset.UTC));
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                id, number, origin, destination, departure.atOffset(ZoneOffset.UTC),
+                departure.plusSeconds(3900).atOffset(ZoneOffset.UTC));
+        return id;
+    }
+
+    static void addFare(JdbcTemplate jdbc, UUID flightId, String fareClass, int availableSeats, BigDecimal price) {
         jdbc.update("INSERT INTO seat_inventory (id, flight_id, fare_class_code, total_seats, available_seats, "
                         + "price_amount, currency) VALUES (?, ?, ?, ?, ?, ?, 'BRL')",
-                UUID.randomUUID(), id, FARE, Math.max(availableSeats, 50), availableSeats, PRICE);
-        return id;
+                UUID.randomUUID(), flightId, fareClass, Math.max(availableSeats, 50), availableSeats, price);
+    }
+
+    static int available(JdbcTemplate jdbc, UUID flightId, String fareClass) {
+        return jdbc.queryForObject("SELECT available_seats FROM seat_inventory WHERE flight_id = ? AND fare_class_code = ?",
+                Integer.class, flightId, fareClass);
     }
 
     static int available(JdbcTemplate jdbc, UUID flightId) {
@@ -52,10 +69,14 @@ final class BookingTestData {
     }
 
     static Map<String, Object> holdBody(UUID flightId, int passengers) {
+        return holdBody(flightId, FARE, passengers);
+    }
+
+    static Map<String, Object> holdBody(UUID flightId, String fareClass, int passengers) {
         List<Map<String, Object>> pax = new ArrayList<>();
         for (int i = 0; i < passengers; i++) {
             pax.add(Map.of("fullName", "Passageira " + i, "documentNumber", "DOC" + i, "birthDate", "1990-05-20"));
         }
-        return Map.of("flightId", flightId, "fareClass", FARE, "passengers", pax);
+        return Map.of("flightId", flightId, "fareClass", fareClass, "passengers", pax);
     }
 }

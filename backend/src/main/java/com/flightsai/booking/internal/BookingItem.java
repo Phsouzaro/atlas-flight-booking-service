@@ -72,6 +72,26 @@ class BookingItem {
         this.currency = fare.price().currency();
     }
 
+    String getFlightNumber() {
+        return flightNumber;
+    }
+
+    String getOriginCode() {
+        return originCode;
+    }
+
+    String getDestinationCode() {
+        return destinationCode;
+    }
+
+    Instant getDepartureAt() {
+        return departureAt;
+    }
+
+    Money unitPrice() {
+        return new Money(unitPriceAmount, currency);
+    }
+
     UUID getFlightId() {
         return flightId;
     }

@@ -23,6 +23,8 @@ import com.flightsai.catalog.AirportView;
 import com.flightsai.catalog.AvailabilityApi;
 import com.flightsai.catalog.FareAvailability;
 import com.flightsai.catalog.FareOption;
+import com.flightsai.catalog.FareRules;
+import com.flightsai.catalog.FareRulesApi;
 import com.flightsai.catalog.FlightSearchApi;
 import com.flightsai.catalog.FlightSearchCriteria;
 import com.flightsai.catalog.FlightView;
@@ -30,19 +32,22 @@ import com.flightsai.catalog.InvalidFlightSearchException;
 
 @Service
 @Transactional(readOnly = true)
-class CatalogService implements FlightSearchApi, AvailabilityApi {
+class CatalogService implements FlightSearchApi, AvailabilityApi, FareRulesApi {
 
     private static final Sort BY_DEPARTURE = Sort.by("departureAt");
 
     private final AirportRepository airports;
     private final FlightRepository flights;
     private final SeatInventoryRepository seats;
+    private final FareClassRepository fareClasses;
     private final Clock clock;
 
-    CatalogService(AirportRepository airports, FlightRepository flights, SeatInventoryRepository seats, Clock clock) {
+    CatalogService(AirportRepository airports, FlightRepository flights, SeatInventoryRepository seats,
+                   FareClassRepository fareClasses, Clock clock) {
         this.airports = airports;
         this.flights = flights;
         this.seats = seats;
+        this.fareClasses = fareClasses;
         this.clock = clock;
     }
 
@@ -104,6 +109,11 @@ class CatalogService implements FlightSearchApi, AvailabilityApi {
                         s.getFareClass().getCode(),
                         s.getAvailableSeats(),
                         s.price()));
+    }
+
+    @Override
+    public Optional<FareRules> rulesFor(String fareClass) {
+        return fareClasses.findById(fareClass).map(FareClass::toRules);
     }
 
     @Override

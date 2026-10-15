@@ -11,15 +11,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.flightsai.booking.BookingView;
+import com.flightsai.booking.CancellationQuote;
 import com.flightsai.booking.HoldBookingCommand;
+import com.flightsai.booking.RebookingProposal;
 import com.flightsai.identity.CurrentUser;
 import com.flightsai.shared.idempotency.IdempotentExecutor;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 @RestController
@@ -54,6 +58,23 @@ class BookingController {
                 () -> ResponseEntity.ok(bookings.confirm(id, request.cardToken())));
     }
 
+    /**
+     * Cota o cancelamento e cria uma ação pendente. Não cancela nada: quem executa é
+     * {@code POST /pending-actions/{id}/confirm}. Sem Idempotency-Key: repetir só cria outra proposta.
+     */
+    @PostMapping("/{id}/cancellation-quote")
+    @ResponseStatus(HttpStatus.CREATED)
+    CancellationQuote quoteCancellation(@PathVariable UUID id) {
+        return bookings.quoteCancellation(id);
+    }
+
+    /** Propõe a remarcação e cria uma ação pendente. Mesma regra da cotação de cancelamento. */
+    @PostMapping("/{id}/rebooking-proposal")
+    @ResponseStatus(HttpStatus.CREATED)
+    RebookingProposal proposeRebooking(@PathVariable UUID id, @Valid @RequestBody RebookingRequest request) {
+        return bookings.proposeRebooking(id, request.flightId(), request.fareClass());
+    }
+
     @GetMapping
     List<BookingView> myBookings() {
         return bookings.myBookings();
@@ -70,5 +91,8 @@ class BookingController {
 
     /** O que identifica uma confirmação para a Idempotency-Key: reserva e token. */
     record ConfirmKey(UUID bookingId, String cardToken) {
+    }
+
+    record RebookingRequest(@NotNull UUID flightId, @NotBlank String fareClass) {
     }
 }

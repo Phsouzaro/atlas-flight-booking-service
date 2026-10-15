@@ -40,6 +40,8 @@ app:
     expiration-job-enabled: true
     expiration-interval: PT30S
     expiration-batch-size: 100
+  pending-actions:
+    ttl: 10m
 
 springdoc:
   swagger-ui:
