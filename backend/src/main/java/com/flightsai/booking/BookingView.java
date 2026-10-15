@@ -9,8 +9,11 @@ import com.flightsai.shared.Money;
 /**
  * Reserva como o dono vê.
  *
- * @param code          localizador de 6 caracteres
- * @param holdExpiresAt até quando um {@code HELD} pode ser confirmado
+ * @param code           localizador de 6 caracteres
+ * @param holdExpiresAt  até quando um {@code HELD} pode ser confirmado
+ * @param refund         quanto foi devolvido, quando {@code CANCELLED}
+ * @param rebookedFromId reserva original, quando esta nasceu de uma remarcação
+ * @param rebookedToId   reserva nova, quando esta foi remarcada ({@code REBOOKED})
  */
 public record BookingView(
         UUID id,
@@ -21,7 +24,12 @@ public record BookingView(
         Instant holdExpiresAt,
         Instant confirmedAt,
         Instant expiredAt,
+        Instant cancelledAt,
+        Instant rebookedAt,
         String paymentReference,
+        Money refund,
+        UUID rebookedFromId,
+        UUID rebookedToId,
         List<Item> items,
         List<PassengerInfo> passengers) {
 

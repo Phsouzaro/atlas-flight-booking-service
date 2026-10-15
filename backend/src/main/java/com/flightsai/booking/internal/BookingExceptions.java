@@ -32,7 +32,8 @@ class BookingExceptionHandler {
         HttpStatus status = switch (ex.reason()) {
             case FARE_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case PAYMENT_DECLINED -> HttpStatus.PAYMENT_REQUIRED;
-            case FLIGHT_DEPARTED, SEATS_UNAVAILABLE, INVALID_STATE, HOLD_EXPIRED -> HttpStatus.CONFLICT;
+            case PAYMENT_REQUIRED, REBOOKING_NOT_ALLOWED -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case FLIGHT_DEPARTED, SEATS_UNAVAILABLE, INVALID_STATE, HOLD_EXPIRED, QUOTE_CHANGED -> HttpStatus.CONFLICT;
         };
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
         problem.setTitle(status.getReasonPhrase());

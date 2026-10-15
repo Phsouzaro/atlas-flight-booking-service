@@ -1,6 +1,11 @@
 package com.flightsai.catalog.internal;
 
+import java.math.BigDecimal;
+
 import org.hibernate.annotations.Immutable;
+
+import com.flightsai.catalog.FareRules;
+import com.flightsai.shared.Money;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,7 +33,23 @@ class FareClass {
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
+    @Column(nullable = false)
+    private boolean refundable;
+
+    @Column(name = "cancellation_fee", nullable = false)
+    private BigDecimal cancellationFee;
+
+    @Column(name = "change_fee", nullable = false)
+    private BigDecimal changeFee;
+
+    @Column(name = "fee_currency", nullable = false)
+    private String feeCurrency;
+
     protected FareClass() {
+    }
+
+    FareRules toRules() {
+        return new FareRules(code, refundable, new Money(cancellationFee, feeCurrency), new Money(changeFee, feeCurrency));
     }
 
     String getCode() {
