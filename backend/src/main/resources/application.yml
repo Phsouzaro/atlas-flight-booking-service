@@ -13,6 +13,7 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+        default_batch_fetch_size: 50   # coleções lazy carregam em lote, não uma query por entidade
   flyway:
     enabled: true
   mvc:
@@ -34,6 +35,11 @@ app:
     jwt:
       secret: ${JWT_SECRET:}   # obrigatório, mínimo 32 bytes; sem ele a aplicação não sobe
       ttl: 1h
+  booking:
+    hold-ttl: 15m
+    expiration-job-enabled: true
+    expiration-interval: PT30S
+    expiration-batch-size: 100
 
 springdoc:
   swagger-ui:

@@ -98,10 +98,35 @@ class CatalogService implements FlightSearchApi, AvailabilityApi {
                 .map(s -> new FareAvailability(
                         s.getFlight().getId(),
                         s.getFlight().getFlightNumber(),
+                        s.getFlight().getOrigin().getCode(),
+                        s.getFlight().getDestination().getCode(),
+                        s.getFlight().getDepartureAt(),
                         s.getFareClass().getCode(),
                         s.getAvailableSeats(),
-                        s.price(),
-                        s.getFlight().getDepartureAt()));
+                        s.price()));
+    }
+
+    @Override
+    @Transactional
+    public boolean reserveSeats(UUID flightId, String fareClass, int seats) {
+        requirePositive(seats);
+        return this.seats.decrementAvailable(flightId, fareClass, seats) == 1;
+    }
+
+    @Override
+    @Transactional
+    public void releaseSeats(UUID flightId, String fareClass, int seats) {
+        requirePositive(seats);
+        if (this.seats.incrementAvailable(flightId, fareClass, seats) != 1) {
+            throw new IllegalStateException(
+                    "Cannot release %d seats on flight %s, fare %s".formatted(seats, flightId, fareClass));
+        }
+    }
+
+    private static void requirePositive(int seats) {
+        if (seats < 1) {
+            throw new IllegalArgumentException("Seats must be positive: " + seats);
+        }
     }
 
     private Airport requireAirport(String code) {
