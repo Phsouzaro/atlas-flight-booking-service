@@ -5,18 +5,32 @@ export interface Problem {
   status: number;
   detail: string | null;
   reason: string | null;
+  /** do header Retry-After, quando o backend limitou a requisição (429) */
+  retryAfterSeconds: number | null;
 }
 
 export function problemOf(error: unknown): Problem {
   if (error instanceof HttpErrorResponse) {
     const body = (error.error ?? {}) as { detail?: unknown; reason?: unknown };
+    const retryAfter = Number(error.headers?.get('Retry-After'));
     return {
       status: error.status,
       detail: typeof body.detail === 'string' ? body.detail : null,
       reason: typeof body.reason === 'string' ? body.reason : null,
+      retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
     };
   }
-  return { status: 0, detail: null, reason: null };
+  return { status: 0, detail: null, reason: null, retryAfterSeconds: null };
+}
+
+function waitText(seconds: number | null): string {
+  if (!seconds) {
+    return 'daqui a pouco';
+  }
+  if (seconds < 60) {
+    return `em ${seconds} s`;
+  }
+  return `em ${Math.ceil(seconds / 60)} min`;
 }
 
 const REASONS: Record<string, string> = {
@@ -39,6 +53,8 @@ export function describeError(error: unknown): string {
     return REASONS[problem.reason];
   }
   switch (problem.status) {
+    case 429:
+      return `Muitas tentativas seguidas. Tente de novo ${waitText(problem.retryAfterSeconds)}.`;
     case 0:
       return 'Sem conexão com o servidor. Tente de novo.';
     case 401:
