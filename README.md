@@ -150,6 +150,14 @@ docker compose up --build
 Sem `OPENAI_API_KEY` tudo funciona, menos o chat, que responde que o assistente está indisponível. O perfil
 `local` (padrão no Compose) popula 12 aeroportos e voos para os próximos 60 dias.
 
+Sem compilar nada, com as imagens que o CI publica no GitHub Container Registry (amd64 e arm64):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.release.yml up -d
+```
+
+`ATLAS_TAG` no `.env` escolhe a versão: `latest` (a `main`, padrão), `sha-<commit>` ou `1.2.3` de uma tag `v1.2.3`.
+
 Desenvolvimento:
 
 ```bash
@@ -178,7 +186,8 @@ Eval contra o modelo real (custa centavos): `OPENAI_API_KEY=... ./mvnw test -Dte
 ![Trace de um turno do chat no Jaeger](docs/images/jaeger-trace.png)
 
 - **CI:** GitHub Actions roda os testes do backend (gerando os diagramas do Modulith como artefato) e os
-  testes e o build de produção do front.
+  testes e o build de produção do front. Com tudo verde, publica as imagens do backend e do front no GHCR
+  para amd64 e arm64, com SBOM e proveniência; em pull request só builda, sem publicar.
 
 ## Estrutura
 
@@ -192,6 +201,7 @@ frontend/               Angular 22 (ver frontend/README.md)
 docs/adr/               decisões de arquitetura
 docs/phase-0-guide.md   como a fundação funciona e como criar um módulo novo
 docker-compose.yml      Postgres, backend, front e Jaeger
+docker-compose.release.yml  mesma pilha com as imagens publicadas pelo CI
 ```
 
 ## Limitações conhecidas
