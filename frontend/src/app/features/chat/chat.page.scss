@@ -5,7 +5,7 @@
   grid-template-columns: 260px 1fr;
   flex: 1;
   min-height: 0;
-  height: calc(100dvh - 56px);
+  height: calc(100dvh - var(--chrome-height, 56px));
 }
 
 .history {
@@ -110,7 +110,7 @@
   .layout { grid-template-columns: 1fr; }
   .history {
     display: none;
-    &.open { display: flex; position: fixed; inset: 56px 0 0; z-index: 20; }
+    &.open { display: flex; position: fixed; inset: var(--chrome-height, 56px) 0 0; z-index: 20; }
   }
   .toggle-history { display: inline-block; }
   .thread, .composer { padding-left: 0.75rem; padding-right: 0.75rem; }

@@ -1,142 +1,147 @@
-# Fase 0: como tudo funciona
+# Phase 0: how the foundation works
 
-Este guia explica o que a fase 0 entrega, por que cada peça existe e como estender o projeto nas
-próximas fases sem quebrar as regras que ele estabelece.
+This guide explains what phase 0 delivered, why each piece exists and how to extend the project without
+breaking the rules it set. It describes the foundation; where later phases changed something, the guide
+says so.
 
-## 1. Objetivo e definição de pronto
+## 1. Goal and definition of done
 
-A fase 0 não tem funcionalidade de voo. Ela entrega uma base em que qualquer funcionalidade nova
-nasce segura, testável e dentro de fronteiras claras.
+Phase 0 has no flight features. It delivers a base on which any new feature is born secure, testable and
+inside clear boundaries.
 
-Pronto quando:
+Done when:
 
-- [ ] `mvn verify` passa na sua máquina (unitários, Modulith e integração com Testcontainers)
-- [ ] `docker compose up --build` sobe Postgres e backend sem erro
-- [ ] `/actuator/health` responde `UP`
-- [ ] registrar, logar e chamar `/me` funciona via Swagger ou curl
-- [ ] o CI roda verde no GitHub
+- [ ] `./mvnw verify` passes on your machine (unit, Modulith and integration tests with Testcontainers)
+- [ ] `docker compose up --build` starts Postgres and the backend without errors
+- [ ] `/actuator/health` answers `UP`
+- [ ] registering, logging in and calling `/me` works through Swagger or curl
+- [ ] CI is green on GitHub
 
-## 2. Fluxo de uma requisição
+## 2. Flow of a request
 
 ```
-Cliente
-  │  POST /auth/login  (ou GET /me com Bearer token)
+Client
+  │  POST /auth/login  (or GET /me with a Bearer token)
   ▼
-Filtros do Spring Security
-  │  /auth/** é público; o resto exige JWT válido
-  │  o JwtDecoder valida assinatura (HS256) e expiração
+Spring Security filters
+  │  /auth/** is public; everything else requires a valid JWT
+  │  the JwtDecoder validates the signature (HS256), expiry and issuer
   ▼
-Controller (identity.internal)      ← valida o payload com Jakarta Validation
+Controller (identity.internal)      ← validates the payload with Jakarta Validation
   ▼
-Service                             ← regra de negócio e transação
+Service                             ← business rules and transaction
   ▼
 Repository (Spring Data JPA)  ──►  PostgreSQL
   │
   ▼
-Erros viram application/problem+json (RFC 9457)
+Errors become application/problem+json (RFC 9457)
 ```
 
-Em `/me`, o controller não recebe o id do usuário como parâmetro. Ele pergunta ao `CurrentUser`,
-que lê o `subject` do token já validado. Esse é o padrão que as tools da IA vão seguir.
+On `/me`, the controller does not receive the user id as a parameter. It asks `CurrentUser`, which reads the
+`subject` of the already validated token. The AI's tools follow the same pattern.
 
-## 3. Fronteiras de módulo (Spring Modulith)
+## 3. Module boundaries (Spring Modulith)
 
-Cada pacote direto de `com.atlas` é um módulo. Regras:
+Each direct package of `com.atlas` is a module. Rules:
 
-| Local | Visibilidade |
+| Location | Visibility |
 |---|---|
-| Pacote raiz do módulo (`identity`) | API pública: interfaces, DTOs e eventos que outros módulos podem usar |
-| Subpacote `internal` | Privado: controllers, services, entidades, repositórios |
-| `shared` | Módulo aberto, todos podem depender; mantenha pequeno e sem regra de negócio |
+| The module's root package (`identity`) | Public API: interfaces, DTOs and events other modules may use |
+| `internal` subpackage | Private: controllers, services, entities, repositories |
+| `shared` | Open module, anyone may depend on it; keep it small and free of business rules |
 
-O teste `ModularityTests` quebra o build se um módulo acessar o `internal` de outro ou se houver
-dependência cíclica. Ele também gera diagramas PlantUML em `backend/target/spring-modulith-docs`.
+`ModularityTests` fails the build if a module touches another module's `internal` package or if there is a
+dependency cycle. It also generates PlantUML diagrams in `backend/target/spring-modulith-docs`.
 
-Como os módulos conversam:
+How modules talk to each other:
 
-1. **Chamada direta a uma interface pública** quando precisa de resposta imediata
-   (ex.: `Booking` pergunta disponibilidade a `catalog`).
-2. **Evento de domínio** quando é uma reação sem resposta
-   (ex.: `BookingCancelled` faz o inventário devolver assentos).
+1. **Direct call to a public interface** when an immediate answer is needed
+   (e.g. `booking` asks `catalog` for availability).
+2. **Domain event** when it is a reaction with no answer
+   (e.g. `BookingCancelled` makes the seats go back to the inventory).
 
-Nunca acesse a tabela ou o repositório de outro módulo.
+Never access another module's tables or repositories.
 
-## 4. Segurança
+## 4. Security
 
-- **Autenticação:** JWT assinado com HS256. O segredo vem de `JWT_SECRET` (mínimo 32 bytes). Sem
-  ele a aplicação não sobe, de propósito.
-- **Token:** `sub` = id do usuário, claim `role` = `USER` ou `ADMIN`, expira em 1 hora por padrão.
-- **Senhas:** `DelegatingPasswordEncoder` (BCrypt por padrão), com hash descartável no login para
-  não revelar quais emails existem pelo tempo de resposta.
-- **Stateless:** sem sessão e sem CSRF, porque não há cookie de sessão.
-- **Identidade nunca vem do cliente nem do modelo:** só do token, via `CurrentUser`.
+- **Authentication:** JWT signed with HS256. The secret comes from `JWT_SECRET` (at least 32 bytes). Without
+  it the application does not start, on purpose.
+- **Token:** `sub` = user id, `role` claim. Since phase 6 the access token lasts 15 minutes and is renewed with
+  a rotated refresh token in an HttpOnly cookie ([ADR-007](adr/ADR-007-session-refresh-token.md)).
+- **Passwords:** `DelegatingPasswordEncoder` (BCrypt by default), with a dummy hash on login so response
+  time does not reveal which emails exist.
+- **Stateless API:** no server-side session. The refresh cookie is `SameSite=Strict`, which is what protects
+  the session routes against CSRF.
+- **Identity never comes from the client or the model:** only from the token, through `CurrentUser`.
+- **Rate limiting** on login, registration and chat arrived in phase 6 ([ADR-006](adr/ADR-006-rate-limit.md)).
 
-Limitações conscientes da fase 0: sem refresh token, sem revogação e sem rate limit de login.
-Entram na fase de qualidade.
+## 5. Database and migrations
 
-## 5. Banco e migrations
+- The schema belongs to **Flyway**. Hibernate runs with `ddl-auto: validate` and only checks it.
+- Files live in `src/main/resources/db/migration`, named `V<number>__<description>.sql`.
+- **Never edit a migration that has already been applied.** Create the next one.
+- `V1` enables pgvector (used by RAG in phase 4); `V2` creates `users`.
+- To start over in development: `docker compose down -v`.
 
-- O schema pertence ao **Flyway**. O Hibernate roda com `ddl-auto: validate` e só confere.
-- Arquivos em `src/main/resources/db/migration`, nomeados `V<número>__<descricao>.sql`.
-- **Nunca edite uma migration já aplicada.** Crie a próxima.
-- `V1` habilita o pgvector (usado pelo RAG na fase 4); `V2` cria `users`.
-- Para recomeçar do zero em desenvolvimento: `docker compose down -v`.
+## 6. Configuration and secrets
 
-## 6. Configuração e segredos
-
-| Variável | Uso | Padrão |
+| Variable | Purpose | Default |
 |---|---|---|
-| `DB_URL`, `DB_USER`, `DB_PASSWORD` | Conexão com o Postgres | `localhost:5432/flightsai` |
-| `JWT_SECRET` | Segredo do JWT | nenhum (obrigatório) |
+| `DB_URL`, `DB_USER`, `DB_PASSWORD` | Postgres connection | `localhost:5432/flightsai` |
+| `JWT_SECRET` | JWT secret | none (required) |
+| `OPENAI_API_KEY` | Chat and embeddings (phase 4) | `missing`: the app starts, the chat answers 503 |
 
-O perfil `local` define um segredo de desenvolvimento para rodar pela IDE. O `.env` fica fora do Git;
-o `.env` documenta o que existe. `OPENAI_API_KEY` entra na fase 4 e nunca vai para o repositório.
+The `local` profile defines a development secret so the app can run from the IDE. The `.env` file stays out
+of Git; the README shows the minimum it needs. API keys never go into the repository.
 
-## 7. Testes
+## 7. Tests
 
-| Teste | O que garante | Precisa de Docker |
+| Test | What it guarantees | Needs Docker |
 |---|---|---|
-| `ModularityTests` | Fronteiras entre módulos | Não |
-| `JwtPropertiesTest` | Falha rápida com segredo ausente ou curto | Não |
-| `AuthFlowTest` | Registro, login, `/me`, 401, 409, 400 contra Postgres real | Sim |
+| `ModularityTests` | Boundaries between modules | No |
+| `JwtPropertiesTest` | Fails fast with a missing or short secret | No |
+| `AuthFlowTest` | Register, login, `/me`, 401, 409, 400 against a real Postgres | Yes |
 
-O teste de integração usa a mesma imagem do Compose (`pgvector/pgvector:pg16`), então diferença
-entre teste e ambiente real é mínima.
+The integration test uses the same image as Compose (`pgvector/pgvector:pg16`), so the difference between
+tests and the real environment is minimal.
 
-## 8. Docker e CI
+## 8. Docker and CI
 
-- **Dockerfile** em dois estágios (Maven para compilar, JRE enxuto para rodar), usuário não-root.
-- **Compose:** `postgres` com healthcheck e `backend` que só sobe quando o banco está saudável.
-  O serviço `frontend` está comentado até a fase 5.
-- **CI:** `mvn -B verify` no GitHub Actions e upload dos diagramas do Modulith como artefato.
-- **Caminho para nuvem:** as imagens são as mesmas. Basta apontar `DB_URL` para um PostgreSQL
-  gerenciado com pgvector e injetar os segredos pela plataforma.
+- **Dockerfile** in two stages (Maven to compile, a slim JRE to run), non-root user.
+- **Compose:** `postgres` with a healthcheck and a `backend` that only starts once the database is healthy.
+  The front end and Jaeger joined in later phases.
+- **CI:** `./mvnw -B verify` on GitHub Actions and the Modulith diagrams uploaded as an artifact. Since phase
+  6 it also tests and builds the front end, publishes the images to GHCR and deploys the static demo.
+- **Path to the cloud:** the images are the same. Point `DB_URL` at a managed PostgreSQL with pgvector and
+  inject the secrets through the platform.
 
-## 9. Como criar um módulo novo (checklist da fase 1)
+## 9. How to create a new module (the phase 1 checklist)
 
-1. Criar o pacote `com.atlas.catalog` com uma classe pública de API (interface ou record).
-2. Colocar controllers, services, entidades e repositórios em `catalog.internal`, package-private.
-3. Criar a migration `V3__catalog.sql` com as tabelas do módulo.
-4. Expor ao resto do sistema apenas o que for necessário no pacote raiz.
-5. Escrever o teste de integração do módulo e rodar `ModularityTests`.
-6. Registrar decisões relevantes como ADR.
+1. Create the `com.atlas.catalog` package with a public API class (interface or record).
+2. Put controllers, services, entities and repositories in `catalog.internal`, package-private.
+3. Create the `V3__catalog.sql` migration with the module's tables.
+4. Expose to the rest of the system only what is needed, in the root package.
+5. Write the module's integration test and run `ModularityTests`.
+6. Record relevant decisions as an ADR.
 
-## 10. O que vem depois
+## 10. What came next
 
-- **Fase 1:** catálogo, seed de voos e busca REST.
-- **Fase 2:** reservas com hold, expiração e concorrência.
-- **Fase 3:** `PendingAction`, cancelamento e remarcação em duas etapas.
-- **Fase 4:** Spring AI (`ChatClient`, tools, memória, RAG com pgvector).
-- **Fase 5:** Angular com chat, cards e modal de confirmação.
+- **Phase 1:** catalog, seeded flights and REST search.
+- **Phase 2:** bookings with hold, expiry and concurrency.
+- **Phase 3:** `PendingAction`, two-step cancellation and rebooking.
+- **Phase 4:** Spring AI (tool loop, memory, RAG with pgvector, PII tokenization).
+- **Phase 5:** Angular with chat, cards and a confirmation dialog.
+- **Phase 6:** rate limiting, observability, refresh tokens, published images and the static demo.
 
-## 11. Pontos para verificar na primeira execução
+## 11. Things to check on the first run
 
-- Versões do `pom.xml`: patches conferidos na fase 6 (Spring Boot 3.5.16, Modulith 1.4.13, springdoc
-  2.8.17). Ao atualizar de novo, confira os patches mais recentes da mesma linha.
-- Se `spring-modulith-docs` ou algum import do teste não resolver, ajuste conforme a versão
-  do Modulith. É a parte mais sensível a versão.
-- O primeiro build baixa muitas dependências (e, pelo `./mvnw`, o próprio Maven); leva alguns minutos.
-- **Testcontainers com Docker Desktop recente:** até a fase 5, o Testcontainers 1.21.3 falhava com
-  "Could not find a valid Docker environment" e exigia `api.version=1.44` em `~/.docker-java.properties`.
-  O 1.21.4, que vem com o Spring Boot 3.5.16, resolve; o arquivo não é mais necessário.
-- **Swagger devolve 401 em `/me`:** é o esperado sem token. Use o botão **Authorize** (veja o README).
+- `pom.xml` versions: patches checked in phase 6 (Spring Boot 3.5.16, Modulith 1.4.13, springdoc 2.8.17).
+  When updating again, check for the latest patches of the same line.
+- If `spring-modulith-docs` or a test import does not resolve, adjust it to the Modulith version. It is the
+  most version-sensitive part.
+- The first build downloads a lot of dependencies (and, through `./mvnw`, Maven itself); it takes a few
+  minutes.
+- **Testcontainers with a recent Docker Desktop:** up to phase 5, Testcontainers 1.21.3 failed with "Could not
+  find a valid Docker environment" and needed `api.version=1.44` in `~/.docker-java.properties`. Version
+  1.21.4, which comes with Spring Boot 3.5.16, fixes it; the file is no longer needed.
+- **Swagger returns 401 on `/me`:** expected without a token. Use the **Authorize** button (see the README).

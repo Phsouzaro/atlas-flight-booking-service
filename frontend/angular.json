@@ -61,6 +61,16 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "demo": {
+              "fileReplacements": [
+                {
+                  "replace": "src/app/demo/demo-mode.ts",
+                  "with": "src/app/demo/demo-mode.demo.ts"
+                }
+              ],
+              "baseHref": "/atlas-flight-booking-service/",
+              "outputPath": "dist/atlas-web-demo"
             }
           },
           "defaultConfiguration": "production"
@@ -76,6 +86,9 @@
             },
             "development": {
               "buildTarget": "atlas-web:build:development"
+            },
+            "demo": {
+              "buildTarget": "atlas-web:build:development,demo"
             }
           },
           "defaultConfiguration": "development"

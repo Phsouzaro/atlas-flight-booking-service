@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 
 import { AuthService } from '../../core/auth.service';
 import { describeError, problemOf } from '../../core/problem';
+import { DEMO } from '../../demo/demo-mode';
 
 @Component({
   selector: 'app-login-page',
@@ -12,6 +13,10 @@ import { describeError, problemOf } from '../../core/problem';
     <section class="card login">
       <h1>{{ mode() === 'login' ? 'Entrar' : 'Criar conta' }}</h1>
       <p class="muted">Assistente de reservas da Atlas. Catálogo e pagamento são simulados.</p>
+      @if (demo) {
+        <p class="hint-demo">Demonstração: qualquer email e senha entram. Os campos já vêm preenchidos.
+          <span lang="en">Demo: any email and password work; the fields are already filled in.</span></p>
+      }
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <label>
@@ -47,6 +52,8 @@ import { describeError, problemOf } from '../../core/problem';
     form { display: grid; gap: 0.9rem; margin-top: 0.5rem; }
     .hint { font-size: 0.85rem; margin-top: -0.5rem; }
     .switch { justify-self: center; }
+    .hint-demo { font-size: 0.88rem; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--accent-soft); }
+    .hint-demo span { display: block; color: var(--muted); }
   `,
 })
 export class LoginPage {
@@ -56,12 +63,13 @@ export class LoginPage {
   /** Vem da query string quando o guard ou o interceptor mandaram para cá. */
   readonly returnUrl = input<string>();
 
+  protected readonly demo = DEMO;
   protected readonly mode = signal<'login' | 'register'>('login');
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly form = inject(FormBuilder).nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    email: [DEMO ? 'recrutador@demo.atlas' : '', [Validators.required, Validators.email]],
+    password: [DEMO ? 'demo-atlas' : '', [Validators.required, Validators.minLength(8)]],
   });
 
   protected toggle(): void {
