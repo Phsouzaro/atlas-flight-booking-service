@@ -1,58 +1,79 @@
-# Front-end (Angular 22)
+# Front end (Angular 22)
 
-Chat com o assistente, lista de reservas e confirmação das ações que o assistente propõe. Standalone
-components, signals, zoneless, sem biblioteca de UI.
+Chat with the assistant, the booking list and confirmation of the actions the assistant proposes. Standalone
+components, signals, zoneless, no UI library. The interface is in Brazilian Portuguese, like the assistant.
 
-## Rodando
+## Running
 
-Precisa de Node 24 (o Angular 22 exige 22.22+ ou 24.15+).
+Requires Node 24 (Angular 22 needs 22.22+ or 24.15+).
 
 ```bash
 npm install
-npm start            # http://localhost:4200, com proxy de /api para o backend em localhost:8080
-npm run test:ci      # testes (Vitest)
-npm run build        # build de produção em dist/atlas-web/browser
+npm start            # http://localhost:4200, proxying /api to the backend on localhost:8080
+npm run test:ci      # tests (Vitest)
+npm run build        # production build in dist/atlas-web/browser
 ```
 
-Pelo Compose (na raiz) o front sobe em `http://localhost:4200`, servido por nginx com o mesmo proxy de `/api`.
+Through Compose (at the repository root) the front end runs on `http://localhost:4200`, served by nginx with
+the same `/api` proxy.
 
-## Cliente da API
-
-Os tipos vêm do contrato do backend, não são escritos à mão:
+## Demo mode (no backend)
 
 ```bash
-npm run api:update     # baixa /v3/api-docs do backend rodando para openapi.json (versionado)
-npm run api:generate   # gera src/app/api/schema.ts a partir dele
+npm run start:demo   # http://localhost:4200/atlas-flight-booking-service/
+npm run build:demo   # dist/atlas-web-demo/browser, the build published to GitHub Pages
 ```
 
-Capturas de tela do README da raiz (com o Compose de pé; usa o Edge ou Chrome instalado em modo headless e
-conversa com o assistente de verdade):
+The `demo` configuration swaps `src/app/demo/demo-mode.ts` for `demo-mode.demo.ts`, which adds an HTTP
+interceptor that answers every `/api` call in the browser (`src/app/demo/`). The fake backend follows the
+real API contract and rules (15-minute holds, test cards, cancellation and rebooking only through a
+confirmed pending action, revalidation, Idempotency-Key) and keeps its state in `sessionStorage`. The
+assistant's replies come from a script, not from a model. In the regular build that list of interceptors is
+empty, so none of this code ships to production.
+
+## API client
+
+Types come from the backend contract; they are not written by hand:
 
 ```bash
-SMOKE_USER_EMAIL=... SMOKE_USER_PASSWORD=... npm run screenshots   # grava em ../docs/images
+npm run api:update     # downloads /v3/api-docs from the running backend into openapi.json (versioned)
+npm run api:generate   # generates src/app/api/schema.ts from it
 ```
 
-`src/app/api/types.ts` só dá nomes curtos aos tipos gerados e corrige o que o OpenAPI não expressa
-(`refund` nulo, `payload` livre). Os serviços em `src/app/core/api.ts` usam esses tipos com o `HttpClient`.
+Screenshots for the root README (with Compose running; uses the installed Edge or Chrome in headless mode and
+talks to the real assistant):
 
-## Regras que a UI segue
+```bash
+SMOKE_USER_EMAIL=... SMOKE_USER_PASSWORD=... npm run screenshots   # writes to ../docs/images
+```
 
-- **Só a UI confirma.** Cancelamento e remarcação chegam como ação pendente (card com Confirmar e Rejeitar);
-  a execução é `POST /pending-actions/{id}/confirm`, chamado por clique do usuário num modal (ADR-002).
-- **Idempotency-Key** em todo POST que muda estado. A mesma chave é reusada no "tentar de novo" e quando a
-  rede falha sem resposta; uma recusa do backend gera chave nova.
-- **Pagamento simulado:** a UI só oferece cartões de teste (`tok_visa`, `tok_decline`...). Nenhum número de
-  cartão passa pela aplicação.
-- **Horários:** voo no fuso do aeroporto, como o backend manda; instantes (criação, prazos) no fuso de Brasília.
-- **Token** no `sessionStorage`, enviado só para `/api`. 401 encerra a sessão e volta para o login.
+`src/app/api/types.ts` only gives short names to the generated types and fixes what OpenAPI cannot express
+(nullable `refund`, free-form `payload`). The services in `src/app/core/api.ts` use those types with
+`HttpClient`.
 
-## Estrutura
+## Rules the UI follows
+
+- **Only the UI confirms.** Cancellation and rebooking arrive as a pending action (a card with Confirm and
+  Reject); execution is `POST /pending-actions/{id}/confirm`, called when the user clicks inside a dialog
+  (ADR-002).
+- **Idempotency-Key** on every POST that changes state. The same key is reused on "try again" and when the
+  network fails without a response; a rejection from the backend gets a new key.
+- **Simulated payment:** the UI only offers test cards (`tok_visa`, `tok_decline`...). No card number ever
+  goes through the application.
+- **Times:** flights in the airport's time zone, as the backend sends them; instants (creation, deadlines)
+  in Brasília time.
+- **Session:** the access token lives only in memory and goes only to `/api`; the refresh token is an
+  HttpOnly cookie the page cannot read (ADR-007). A failed refresh ends the session and returns to login.
+
+## Structure
 
 ```
 src/app/
-  api/         schema.ts (gerado) e types.ts
-  core/        auth (serviço, interceptor, guard), clientes da API, erros problem+json, formatação
-  shared/      modal, card de ação pendente, cards de voo e reserva, seletor de cartão de teste
-  features/    login, chat, reservas
-nginx/         configuração do container (proxy, cache, CSP)
+  api/         schema.ts (generated) and types.ts
+  core/        auth (service, interceptor, guard), API clients, problem+json errors, formatting
+  shared/      dialog, pending action card, flight and booking cards, test card picker
+  features/    login, chat, bookings
+  demo/        fake backend for the static demo (only in the demo build)
+nginx/         container configuration (proxy, cache, CSP)
+scripts/       API contract update and README screenshots
 ```

@@ -1,14 +1,16 @@
-# Decisões de arquitetura
+# Architecture decisions
 
-Cada ADR registra uma decisão que muda a arquitetura: o contexto, o que foi decidido, por quê e o que custa.
-Decisão nova vira um arquivo novo; uma decisão substituída fica, com o status apontando para a que a substituiu.
+Each ADR records a decision that changes the architecture: the context, what was decided, why, and what it
+costs. A new decision becomes a new file; a superseded decision stays, with its status pointing to the one
+that replaced it.
 
-| ADR | Decisão | Fase |
+| ADR | Decision | Phase |
 |---|---|---|
-| [001](ADR-001-monolito-modular.md) | Monolito modular em vez de microsserviços | 0 |
-| [002](ADR-002-ia-sem-escrita-direta.md) | A IA não tem permissão de escrita direta | 0 |
-| [003](ADR-003-spring-modulith-e-flyway.md) | Spring Modulith para fronteiras e Flyway para o schema | 0 |
-| [004](ADR-004-concorrencia-de-assentos.md) | Update condicional para a disputa de assentos | 2 |
-| [005](ADR-005-assistente-loop-memoria-rag.md) | Desenho do assistente: loop de tools, memória, RAG e PII | 4 |
-| [006](ADR-006-rate-limit.md) | Rate limit em memória, por rota e por conta | 6 |
-| [007](ADR-007-sessao-refresh-token.md) | Sessão com access token curto e refresh token rotacionado | 6 |
+| [001](ADR-001-modular-monolith.md) | Modular monolith instead of microservices | 0 |
+| [002](ADR-002-ai-without-direct-writes.md) | The AI has no direct write access | 0 |
+| [003](ADR-003-spring-modulith-and-flyway.md) | Spring Modulith for boundaries and Flyway for the schema | 0 |
+| [004](ADR-004-seat-concurrency.md) | Conditional update for the race on seats | 2 |
+| [005](ADR-005-assistant-loop-memory-rag.md) | Assistant design: tool loop, memory, RAG and PII | 4 |
+| [006](ADR-006-rate-limit.md) | In-memory rate limiting, per route and per account | 6 |
+| [007](ADR-007-session-refresh-token.md) | Session with a short access token and a rotated refresh token | 6 |
+| [008](ADR-008-static-demo.md) | Static demo with a fake backend in the browser | 6 |
