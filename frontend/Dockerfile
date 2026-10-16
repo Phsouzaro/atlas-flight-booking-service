@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # ---- build ----
-FROM node:24-alpine AS build
+# HTML/JS/CSS não dependem de CPU: builda na arquitetura de quem builda, só o nginx é por plataforma
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci

@@ -29,7 +29,9 @@ import com.jayway.jsonpath.JsonPath;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
-@TestPropertySource(properties = "app.security.jwt.secret=test-secret-with-at-least-32-bytes-0123456789")
+@TestPropertySource(properties = {
+        "app.security.jwt.secret=test-secret-with-at-least-32-bytes-0123456789",
+        "app.rate-limit.enabled=false"}) // os testes de limite ficam no RateLimitTest
 class AuthFlowTest {
 
     @Container

@@ -1,0 +1,11 @@
+# Sobe com as imagens publicadas pelo CI no GHCR, sem compilar nada:
+#   docker compose -f docker-compose.yml -f docker-compose.release.yml up -d
+# Versão: ATLAS_TAG no .env (padrão latest, que é a main; ou sha-abc1234, ou 1.2.3 de uma tag v1.2.3).
+services:
+  backend:
+    image: ghcr.io/phsouzaro/atlas-flight-booking-service-backend:${ATLAS_TAG:-latest}
+    pull_policy: always
+
+  frontend:
+    image: ghcr.io/phsouzaro/atlas-flight-booking-service-frontend:${ATLAS_TAG:-latest}
+    pull_policy: always

@@ -82,6 +82,15 @@ class BookingController {
         return bookings.proposeRebooking(id, request.flightId(), request.fareClass());
     }
 
+    /** Desiste de um hold não pago e devolve os assentos na hora. */
+    @PostMapping("/{id}/release")
+    @ApiResponse(responseCode = "200", description = "Hold liberado (reserva CANCELLED, reembolso zero)",
+            content = @Content(schema = @Schema(implementation = BookingView.class)))
+    ResponseEntity<?> release(@RequestHeader(IdempotentExecutor.HEADER) String idempotencyKey, @PathVariable UUID id) {
+        return idempotency.execute(currentUser.id(), idempotencyKey, "booking.release", id,
+                () -> ResponseEntity.ok(bookings.releaseHold(id)));
+    }
+
     @GetMapping
     List<BookingView> myBookings() {
         return bookings.myBookings();

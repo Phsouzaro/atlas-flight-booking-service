@@ -1,0 +1,4 @@
+# Scripts de shell precisam de LF para rodar no Linux (CI, containers), mesmo com checkout no Windows.
+*.sh       text eol=lf
+mvnw       text eol=lf
+*.cmd      text eol=crlf

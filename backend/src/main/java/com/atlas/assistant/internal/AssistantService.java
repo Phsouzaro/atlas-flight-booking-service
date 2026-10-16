@@ -27,6 +27,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
 import com.atlas.identity.CurrentUser;
 import com.atlas.pendingaction.PendingActionView;
 import com.atlas.pendingaction.PendingActions;
@@ -64,12 +67,24 @@ class AssistantService {
     private final CurrentUser currentUser;
     private final AssistantProperties props;
     private final Clock clock;
+    private final MeterRegistry meters;
     private final boolean configured;
+
+    // métricas (os tokens o Spring AI já mede: gen_ai.client.token.usage)
+    static final String TURNS_METRIC = "atlas.assistant.turns";
+    static final String TURN_DURATION_METRIC = "atlas.assistant.turn.duration";
+    static final String TOOL_CALLS_METRIC = "atlas.assistant.tool.calls";
+    static final String OUTCOME_ANSWERED = "answered";
+    static final String OUTCOME_BLOCKED = "blocked";
+    static final String OUTCOME_LIMITED = "limited";
+    static final String OUTCOME_FAILED = "failed";
+    static final String OUTCOME_UNAVAILABLE = "unavailable";
 
     AssistantService(ChatModel chatModel, ToolCallingManager toolCallingManager, AssistantTools assistantTools,
                      ConversationStore store, PiiVault vault, SystemPrompt systemPrompt, PendingActions pendingActions,
-                     CurrentUser currentUser, AssistantProperties props, Clock clock,
+                     CurrentUser currentUser, AssistantProperties props, Clock clock, MeterRegistry meters,
                      @Value("${spring.ai.openai.api-key:missing}") String apiKey) {
+        this.meters = meters;
         this.chatModel = chatModel;
         this.toolCallingManager = toolCallingManager;
         this.tools = Arrays.asList(ToolCallbacks.from(assistantTools));
@@ -117,6 +132,7 @@ class AssistantService {
                     .orElseThrow(TurnInProgressException::new);
         }
         if (!configured) {
+            countTurn(OUTCOME_UNAVAILABLE);
             throw new AssistantUnavailableException("Assistant is not configured (OPENAI_API_KEY)");
         }
 
@@ -134,17 +150,22 @@ class AssistantService {
         messages.add(new UserMessage(masked));
 
         TurnContext turn = TurnContext.open(conversationId);
+        Timer.Sample timing = Timer.start(meters);
         Result result;
         try {
             result = run(new Prompt(messages, options()), turn);
         } catch (RuntimeException e) {
             // sem resposta gravada a mesma chave fica presa em "em andamento"; apagar libera a nova tentativa
             store.deleteMessage(userMessageId);
+            timing.stop(meters.timer(TURN_DURATION_METRIC, "outcome", OUTCOME_FAILED));
+            countTurn(OUTCOME_FAILED);
             log.warn("Assistant turn failed in conversation {}: {}", conversationId, e.getClass().getSimpleName());
             throw new AssistantUnavailableException("Assistant is temporarily unavailable");
         } finally {
             TurnContext.close();
         }
+        timing.stop(meters.timer(TURN_DURATION_METRIC, "outcome", result.outcome()));
+        countTurn(result.outcome());
 
         Attachments attachments = turn.attachments();
         UUID replyId = store.insertReply(conversationId, userMessageId, result.text(), systemPrompt.version(),
@@ -158,7 +179,12 @@ class AssistantService {
     record Turn(AssistantReply reply, boolean replayed) {
     }
 
-    private record Result(String text, TokenUsage usage) {
+    /** @param outcome como o turno terminou, para a métrica: answered, blocked ou limited */
+    private record Result(String text, TokenUsage usage, String outcome) {
+    }
+
+    private void countTurn(String outcome) {
+        meters.counter(TURNS_METRIC, "outcome", outcome).increment();
     }
 
     private Result run(Prompt prompt, TurnContext turn) {
@@ -174,7 +200,7 @@ class AssistantService {
             TokenUsage total = new TokenUsage(promptTokens, completionTokens);
             if (!response.hasToolCalls()) {
                 String text = response.getResult() == null ? null : response.getResult().getOutput().getText();
-                return new Result(text == null || text.isBlank() ? LIMIT_REPLY : text, total);
+                return new Result(text == null || text.isBlank() ? LIMIT_REPLY : text, total, OUTCOME_ANSWERED);
             }
 
             List<AssistantMessage.ToolCall> calls = response.getResult().getOutput().getToolCalls();
@@ -183,13 +209,16 @@ class AssistantService {
             if (!blocked.isEmpty()) {
                 // o modelo pediu algo que não existe (ex.: cancelBooking depois de uma injection): não executa nada
                 blocked.forEach(name -> turn.recordToolCall("blocked:" + name));
-                return new Result(BLOCKED_REPLY, total);
+                return new Result(BLOCKED_REPLY, total, OUTCOME_BLOCKED);
             }
             if (call >= props.maxModelCallsPerTurn()
                     || turn.toolCalls().size() + calls.size() > props.maxToolCallsPerTurn()) {
-                return new Result(LIMIT_REPLY, total);
+                return new Result(LIMIT_REPLY, total, OUTCOME_LIMITED);
             }
-            calls.forEach(c -> turn.recordToolCall(c.name()));
+            calls.forEach(c -> {
+                turn.recordToolCall(c.name());
+                meters.counter(TOOL_CALLS_METRIC, "tool", c.name()).increment();
+            });
             ToolExecutionResult executed = toolCallingManager.executeToolCalls(prompt, response);
             List<Message> history = executed.conversationHistory();
             if (!history.isEmpty() && history.get(history.size() - 1) instanceof ToolResponseMessage results) {

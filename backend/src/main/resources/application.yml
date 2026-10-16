@@ -43,17 +43,32 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        # prometheus fica aberto para o scraper da rede interna; o nginx não repassa /api/actuator para fora
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       probes:
         enabled: true
+  tracing:
+    sampling:
+      probability: 1.0   # projeto de demonstração: todo request vira trace. Em produção, baixar.
+  observations:
+    key-values:
+      application: atlas-flight-booking-service
+  # o export dos traces só liga com management.otlp.tracing.endpoint (o Compose aponta para o Jaeger)
 
 app:
   security:
     jwt:
       secret: ${JWT_SECRET:}   # obrigatório, mínimo 32 bytes; sem ele a aplicação não sobe
-      ttl: 1h
+      ttl: 15m                 # curto de propósito: a sessão continua pelo refresh token
+    refresh:
+      ttl: 7d                  # sem uso por 7 dias, a sessão acaba
+      max-lifetime: 30d        # e acaba de qualquer jeito 30 dias depois do login
+      reuse-grace: 10s         # duas abas renovando juntas não é roubo
+      cookie-name: atlas_refresh
+      cookie-path: /
+      cookie-secure: true      # navegadores aceitam Secure em http://localhost
   booking:
     hold-ttl: 15m
     expiration-job-enabled: true
@@ -71,6 +86,47 @@ app:
     policies:
       ingest-on-startup: true
       top-k: 4
+  rate-limit:
+    enabled: true
+    rules:
+      login:
+        method: POST
+        path: /auth/login
+        key: IP
+        capacity: 20
+        period: 1m
+      refresh:
+        method: POST
+        path: /auth/refresh
+        key: IP
+        capacity: 30
+        period: 1m
+      register:
+        method: POST
+        path: /auth/register
+        key: IP
+        capacity: 5
+        period: 1h
+      chat-minute:
+        method: POST
+        path: /assistant/conversations/*/messages
+        key: USER
+        capacity: 10
+        period: 1m
+      chat-day:                # teto de custo com o modelo, por usuário
+        method: POST
+        path: /assistant/conversations/*/messages
+        key: USER
+        capacity: 200
+        period: 1d
+    login-failures:            # senha errada por email, além do limite por IP
+      capacity: 5
+      period: 15m
+
+server:
+  # atrás do nginx do front, o IP do cliente vem no X-Forwarded-For; o Tomcat só confia nele vindo de
+  # rede interna (é o que o rate limit por IP usa)
+  forward-headers-strategy: native
 
 springdoc:
   api-docs:

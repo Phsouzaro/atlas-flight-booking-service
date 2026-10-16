@@ -4,12 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /** Expira holds vencidos de tempos em tempos. Desligável por {@code app.booking.expiration-job-enabled}. */
 @Configuration
-@EnableScheduling
 @ConditionalOnProperty(prefix = "app.booking", name = "expiration-job-enabled", havingValue = "true",
         matchIfMissing = true)
 class BookingExpirationJob {

@@ -43,6 +43,7 @@
               @case ('HELD') {
                 @if (countdown(b.holdExpiresAt); as left) {
                   <span class="warn-text">Pague em {{ left }}</span>
+                  <button type="button" (click)="startRelease(b)" [attr.aria-label]="'Desistir da reserva ' + b.code">Desistir</button>
                   <button type="button" class="primary" (click)="startPayment(b)" [attr.aria-label]="'Pagar a reserva ' + b.code">Pagar</button>
                 } @else {
                   <span class="muted">Prazo encerrado</span>
@@ -73,6 +74,21 @@
     <p class="muted">Carregando…</p>
   }
 </section>
+
+@if (releasing(); as b) {
+  <app-dialog [heading]="'Desistir da reserva ' + b.code + '?'" [locked]="releaseBusy()" (closed)="releasing.set(null)">
+    <p>Os assentos voltam a ficar disponíveis agora. Nada foi cobrado, então não há reembolso.</p>
+    @if (releaseError()) {
+      <p class="error" role="alert">{{ releaseError() }}</p>
+    }
+    <div class="dialog-actions">
+      <button type="button" (click)="releasing.set(null)" [disabled]="releaseBusy()">Voltar</button>
+      <button type="button" class="danger" (click)="release()" [disabled]="releaseBusy()">
+        {{ releaseBusy() ? 'Liberando…' : 'Desistir' }}
+      </button>
+    </div>
+  </app-dialog>
+}
 
 @if (paying(); as b) {
   <app-dialog [heading]="'Pagar a reserva ' + b.code" [locked]="payBusy()" (closed)="closePayment()">

@@ -9,7 +9,8 @@
     "test": "ng test",
     "test:ci": "ng test --watch=false",
     "api:update": "node scripts/update-api.mjs",
-    "api:generate": "npx -y openapi-typescript@7.13.0 openapi.json -o src/app/api/schema.ts"
+    "api:generate": "npx -y openapi-typescript@7.13.0 openapi.json -o src/app/api/schema.ts",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "private": true,
   "packageManager": "npm@11.19.0",

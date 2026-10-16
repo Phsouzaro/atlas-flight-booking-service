@@ -180,6 +180,50 @@
         ]
       }
     },
+    "/bookings/{id}/release": {
+      "post": {
+        "tags": [
+          "booking-controller"
+        ],
+        "operationId": "release",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hold liberado (reserva CANCELLED, reembolso zero)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/bookings/{id}/rebooking-proposal": {
       "post": {
         "tags": [
@@ -342,6 +386,59 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "refresh",
+        "parameters": [
+          {
+            "name": "atlas_refresh",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "logout",
+        "parameters": [
+          {
+            "name": "atlas_refresh",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -775,6 +872,24 @@
           }
         ]
       }
+    },
+    "/me/sessions": {
+      "delete": {
+        "tags": [
+          "me-controller"
+        ],
+        "operationId": "endAllSessions",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -822,9 +937,11 @@
             "type": "object",
             "additionalProperties": {
               "type": "object",
-              "nullable": true
+              "nullable": true,
+              "default": null
             },
-            "nullable": true
+            "nullable": true,
+            "default": null
           },
           "createdAt": {
             "type": "string",
@@ -851,7 +968,8 @@
             "maxLength": 100,
             "minLength": 0,
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "default": ""
           }
         }
       },
@@ -977,7 +1095,8 @@
           },
           "paymentReference": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "default": ""
           },
           "refund": {
             "$ref": "#/components/schemas/Money"
@@ -1210,7 +1329,8 @@
           "email": {
             "maxLength": 254,
             "minLength": 0,
-            "type": "string"
+            "type": "string",
+            "format": "email"
           },
           "password": {
             "maxLength": 72,
@@ -1239,23 +1359,6 @@
           }
         }
       },
-      "LoginRequest": {
-        "required": [
-          "email",
-          "password"
-        ],
-        "type": "object",
-        "properties": {
-          "email": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "password": {
-            "minLength": 1,
-            "type": "string"
-          }
-        }
-      },
       "TokenResponse": {
         "required": [
           "accessToken",
@@ -1273,6 +1376,23 @@
           "expiresIn": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "LoginRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string"
           }
         }
       },

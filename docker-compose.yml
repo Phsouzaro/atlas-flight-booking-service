@@ -17,12 +17,23 @@ services:
       timeout: 3s
       retries: 10
 
+  # traces (OpenTelemetry): UI em http://localhost:16686, procure pelo X-Trace-Id de uma resposta
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    ports:
+      - "16686:16686"
+
   backend:
     build: ./backend
     depends_on:
       postgres:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     environment:
+      # logs em JSON (ECS), com trace id e usuário em cada linha
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-flightsai}
       DB_USER: ${POSTGRES_USER:-flightsai}
       DB_PASSWORD: ${POSTGRES_PASSWORD}

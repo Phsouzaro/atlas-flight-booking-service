@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # ---- build ----
-FROM maven:3.9-eclipse-temurin-21 AS build
+# o jar não depende de CPU: compila na arquitetura de quem builda e só o runtime é por plataforma
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 COPY pom.xml .
 RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline

@@ -131,15 +131,12 @@ entre teste e ambiente real é mínima.
 
 ## 11. Pontos para verificar na primeira execução
 
-- Versões do `pom.xml` (Spring Boot 3.5.x, Modulith 1.4.x, springdoc 2.8.x): confirme os patches
-  mais recentes e atualize se houver aviso.
+- Versões do `pom.xml`: patches conferidos na fase 6 (Spring Boot 3.5.16, Modulith 1.4.13, springdoc
+  2.8.17). Ao atualizar de novo, confira os patches mais recentes da mesma linha.
 - Se `spring-modulith-docs` ou algum import do teste não resolver, ajuste conforme a versão
   do Modulith. É a parte mais sensível a versão.
-- O primeiro build baixa muitas dependências; leva alguns minutos.
-- **Testcontainers com Docker Desktop recente:** se o `AuthFlowTest` falhar com
-  "Could not find a valid Docker environment" mesmo com o Docker rodando (a resposta da API vem com
-  status 400 e campos vazios), é incompatibilidade de versão de API entre o cliente do
-  Testcontainers 1.21.x e o engine novo. Contorno, no PowerShell:
-  `Set-Content -Path "$env:USERPROFILE\.docker-java.properties" -Value "api.version=1.44"`.
-  A correção definitiva é subir a versão do Testcontainers no `pom.xml`.
+- O primeiro build baixa muitas dependências (e, pelo `./mvnw`, o próprio Maven); leva alguns minutos.
+- **Testcontainers com Docker Desktop recente:** até a fase 5, o Testcontainers 1.21.3 falhava com
+  "Could not find a valid Docker environment" e exigia `api.version=1.44` em `~/.docker-java.properties`.
+  O 1.21.4, que vem com o Spring Boot 3.5.16, resolve; o arquivo não é mais necessário.
 - **Swagger devolve 401 em `/me`:** é o esperado sem token. Use o botão **Authorize** (veja o README).

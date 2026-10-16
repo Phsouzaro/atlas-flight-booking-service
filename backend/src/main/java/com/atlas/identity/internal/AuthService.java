@@ -8,22 +8,31 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.atlas.shared.ratelimit.RateLimitProperties;
+import com.atlas.shared.ratelimit.RateLimiter;
+import com.atlas.shared.ratelimit.TooManyRequestsException;
+
 @Service
 class AuthService {
 
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
-    private final TokenService tokens;
+    private final SessionService sessions;
     private final Clock clock;
+    private final RateLimiter rateLimiter;
+    private final RateLimitProperties rateLimits;
 
     /** Hash descartável: comparar mesmo quando o usuário não existe evita revelar emails cadastrados pelo tempo de resposta. */
     private final String dummyHash;
 
-    AuthService(UserRepository users, PasswordEncoder passwordEncoder, TokenService tokens, Clock clock) {
+    AuthService(UserRepository users, PasswordEncoder passwordEncoder, SessionService sessions, Clock clock,
+                RateLimiter rateLimiter, RateLimitProperties rateLimits) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
-        this.tokens = tokens;
+        this.sessions = sessions;
         this.clock = clock;
+        this.rateLimiter = rateLimiter;
+        this.rateLimits = rateLimits;
         this.dummyHash = passwordEncoder.encode("dummy-password-for-timing");
     }
 
@@ -43,15 +52,30 @@ class AuthService {
         return UserResponse.from(user);
     }
 
-    @Transactional(readOnly = true)
-    TokenResponse login(LoginRequest request) {
-        User user = users.findByEmail(normalize(request.email())).orElse(null);
+    /**
+     * Além do limite por IP (na rota), conta senhas erradas por email: força bruta distribuída em muitos IPs
+     * contra uma conta para no limite. Login certo não gasta ficha. O bloqueio vem antes de comparar a senha,
+     * então nem a senha certa entra enquanto durar, e a resposta é a mesma exista o email ou não.
+     */
+    @Transactional // grava o refresh token da sessão nova
+    SessionService.Session login(LoginRequest request) {
+        String email = normalize(request.email());
+        String failuresKey = "login-failures:" + email;
+        if (rateLimits.enabled()) {
+            rateLimiter.check(failuresKey, rateLimits.loginFailures()).ifPresent(wait -> {
+                throw new TooManyRequestsException(wait);
+            });
+        }
+        User user = users.findByEmail(email).orElse(null);
         String hash = user != null ? user.getPasswordHash() : dummyHash;
         boolean matches = passwordEncoder.matches(request.password(), hash);
         if (user == null || !matches) {
+            if (rateLimits.enabled()) {
+                rateLimiter.consume(failuresKey, rateLimits.loginFailures());
+            }
             throw new InvalidCredentialsException();
         }
-        return tokens.issue(user);
+        return sessions.start(user);
     }
 
     private static String normalize(String email) {
