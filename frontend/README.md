@@ -25,6 +25,13 @@ npm run api:update     # baixa /v3/api-docs do backend rodando para openapi.json
 npm run api:generate   # gera src/app/api/schema.ts a partir dele
 ```
 
+Capturas de tela do README da raiz (com o Compose de pé; usa o Edge ou Chrome instalado em modo headless e
+conversa com o assistente de verdade):
+
+```bash
+SMOKE_USER_EMAIL=... SMOKE_USER_PASSWORD=... npm run screenshots   # grava em ../docs/images
+```
+
 `src/app/api/types.ts` só dá nomes curtos aos tipos gerados e corrige o que o OpenAPI não expressa
 (`refund` nulo, `payload` livre). Os serviços em `src/app/core/api.ts` usam esses tipos com o `HttpClient`.
 
